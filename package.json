@@ -1,0 +1,27 @@
+{
+    "name": "apify-mcp-server-challenge",
+    "version": "1.0.0",
+    "description": "Apify MCP Server Hiring challenge",
+    "type": "module",
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "scripts": {
+        "dev": "npx -y tsx src/main.ts",
+        "build": "npx tsc",
+        "start": "node dist/main.js"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.18.1",
+        "express": "^4.21.2"
+    },
+    "devDependencies": {
+        "@apify/tsconfig": "^0.1.0",
+        "@types/express": "^5.0.3",
+        "i": "^0.3.7",
+        "tsx": "^4.7.1",
+        "typescript": "^5.3.3"
+    },
+    "author": "It is not me, it is you",
+    "license": "MIT"
+}

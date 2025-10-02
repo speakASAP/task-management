@@ -1,0 +1,92 @@
+---
+services:
+    redis:
+        image: redis:7-alpine
+        ports:
+            - '6379:6379'
+        command: redis-server --appendonly yes
+        volumes:
+            - redis_data:/data
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 5s
+            timeout: 3s
+            retries: 5
+
+    mcp-server-1:
+        build: .
+        ports:
+            - '3001:3000'
+        environment:
+            - NODE_ENV=production
+            - SERVER_PORT=3000
+            - REDIS_URL=redis://redis:6379
+            - OPENAI_API_KEY=${OPENAI_API_KEY}
+              - APIFY_LOG_LEVEL=DEBUG
+            - NODE_ID=node-1
+        depends_on:
+            redis:
+                condition: service_healthy
+        volumes:
+            - ./src:/app/src
+            - ./tests:/app/tests
+        command: npm run dev
+
+    mcp-server-2:
+        build: .
+        ports:
+            - '3002:3000'
+        environment:
+            - NODE_ENV=production
+            - SERVER_PORT=3000
+            - REDIS_URL=redis://redis:6379
+            - OPENAI_API_KEY=${OPENAI_API_KEY}
+            - APIFY_LOG_LEVEL=DEBUG
+            - NODE_ID=node-2
+        depends_on:
+            redis:
+                condition: service_healthy
+        volumes:
+            - ./src:/app/src
+            - ./tests:/app/tests
+        command: npm run dev
+
+    # To accelerate local development with Docker compose, you can update docker-compose as follows:
+    #    mcp-server-1:
+    #      image: node:22-alpine
+    #      working_dir: /app
+    #      ports:
+    #        - '3001:3000'
+    #      environment:
+    #        - NODE_ENV=production
+    #        - SERVER_PORT=3000
+    #        - REDIS_URL=redis://redis:6379
+    #        - OPENAI_API_KEY=${OPENAI_API_KEY}
+    #        - APIFY_LOG_LEVEL=DEBUG
+    #        - NODE_ID=node-2
+    #      depends_on:
+    #        redis:
+    #          condition: service_healthy
+    #      volumes:
+    #        - ./:/app
+    #        - ./node_modules:/app/node_modules
+    #      command: npx -y tsx watch src/main.ts
+
+    # Load balancer for testing exposed on port 3000
+    caddy:
+        image: caddy:2
+        ports:
+            - '3000:80'
+        # One-liner to start Caddy load balancer with mcp servers as backends
+        command:
+            [
+                'sh',
+                '-c',
+                "printf '%s\\n' ':80 {' '    reverse_proxy mcp-server-1:3000 mcp-server-2:3000' '}' | caddy run --config - --adapter caddyfile",
+            ]
+        depends_on:
+            - mcp-server-1
+            - mcp-server-2
+
+volumes:
+    redis_data:
