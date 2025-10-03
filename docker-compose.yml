@@ -22,7 +22,7 @@ services:
             - SERVER_PORT=3000
             - REDIS_URL=redis://redis:6379
             - OPENAI_API_KEY=${OPENAI_API_KEY}
-              - APIFY_LOG_LEVEL=DEBUG
+            - LOG_LEVEL=DEBUG
             - NODE_ID=node-1
         depends_on:
             redis:
@@ -41,7 +41,7 @@ services:
             - SERVER_PORT=3000
             - REDIS_URL=redis://redis:6379
             - OPENAI_API_KEY=${OPENAI_API_KEY}
-            - APIFY_LOG_LEVEL=DEBUG
+            - LOG_LEVEL=DEBUG
             - NODE_ID=node-2
         depends_on:
             redis:
@@ -62,7 +62,7 @@ services:
     #        - SERVER_PORT=3000
     #        - REDIS_URL=redis://redis:6379
     #        - OPENAI_API_KEY=${OPENAI_API_KEY}
-    #        - APIFY_LOG_LEVEL=DEBUG
+    #        - LOG_LEVEL=DEBUG
     #        - NODE_ID=node-2
     #      depends_on:
     #        redis:

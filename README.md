@@ -57,7 +57,7 @@ The server exposes the following MCP tools:
 
    ```bash
    git clone <repository-url>
-   cd apify-mcp-server
+   cd mcp-server
    ```
 
 2. **Install dependencies**
@@ -139,7 +139,7 @@ OPENAI_MODEL=gpt-3.5-turbo
 OPENAI_BASE_URL=https://api.openai.com/v1
 
 # Logging
-APIFY_LOG_LEVEL=DEBUG
+LOG_LEVEL=DEBUG
 
 # AI Analysis Configuration
 AI_ANALYSIS_ENABLED=true
@@ -508,7 +508,7 @@ The server implements the full MCP protocol and can be integrated with any MCP-c
 Enable debug logging:
 
 ```bash
-APIFY_LOG_LEVEL=DEBUG npm run dev
+LOG_LEVEL=DEBUG npm run dev
 ```
 
 ### Testing Troubleshooting

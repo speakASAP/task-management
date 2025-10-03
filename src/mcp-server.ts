@@ -46,7 +46,7 @@ export class MCPServer {
             openaiApiKey: process.env.OPENAI_API_KEY || '',
             openaiModel: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
             openaiBaseUrl: process.env.OPENAI_BASE_URL || undefined,
-            logLevel: process.env.APIFY_LOG_LEVEL || 'info',
+            logLevel: process.env.LOG_LEVEL || 'info',
             aiAnalysisEnabled: process.env.AI_ANALYSIS_ENABLED === 'true',
             aiAnalysisCacheTtl: parseInt(process.env.AI_ANALYSIS_CACHE_TTL || '300'),
             aiAnalysisBatchSize: parseInt(process.env.AI_ANALYSIS_BATCH_SIZE || '10'),

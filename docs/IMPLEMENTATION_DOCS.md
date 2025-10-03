@@ -58,7 +58,7 @@ The server exposes the following MCP tools:
 
    ```bash
    git clone <repository-url>
-   cd apify-mcp-server
+   cd mcp-server
    ```
 
 2. **Install dependencies**
@@ -98,7 +98,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-3.5-turbo
 
 # Logging
-APIFY_LOG_LEVEL=DEBUG
+LOG_LEVEL=DEBUG
 
 # AI Analysis Configuration
 AI_ANALYSIS_ENABLED=true
@@ -338,7 +338,7 @@ curl -X POST http://localhost:3000/mcp \
 Enable debug logging:
 
 ```bash
-APIFY_LOG_LEVEL=DEBUG npm run dev
+LOG_LEVEL=DEBUG npm run dev
 ```
 
 ## 📈 Future Enhancements

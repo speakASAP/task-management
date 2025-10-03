@@ -1,7 +1,7 @@
 {
-    "name": "apify-mcp-server-challenge",
+    "name": "mcp-server",
     "version": "1.0.0",
-    "description": "Apify MCP Server Hiring challenge",
+    "description": "MCP Server",
     "type": "module",
     "engines": {
         "node": ">=18.0.0"
