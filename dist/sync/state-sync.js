@@ -36,9 +36,16 @@ export class StateSync {
         this.logger = new Logger();
     }
     async initialize() {
+        var _a;
         try {
+            // Create a separate Redis client for pub/sub to avoid conflicts
+            const { createClient } = await import('redis');
+            const pubSubClient = createClient({
+                url: ((_a = this.redis.getClient().options) === null || _a === void 0 ? void 0 : _a.url) || 'redis://localhost:6379'
+            });
+            await pubSubClient.connect();
             // Subscribe to state sync events
-            await this.redis.subscribe(this.channelName, (message) => {
+            await pubSubClient.subscribe(this.channelName, (message) => {
                 this.handleSyncEvent(message);
             });
             this.isInitialized = true;
@@ -62,6 +69,7 @@ export class StateSync {
         }
     }
     async publishEvent(event) {
+        var _a;
         try {
             const syncEvent = {
                 ...event,
@@ -69,7 +77,14 @@ export class StateSync {
                 timestamp: new Date()
             };
             const message = JSON.stringify(syncEvent);
-            await this.redis.publish(this.channelName, message);
+            // Use a separate Redis client for publishing
+            const { createClient } = await import('redis');
+            const publishClient = createClient({
+                url: ((_a = this.redis.getClient().options) === null || _a === void 0 ? void 0 : _a.url) || 'redis://localhost:6379'
+            });
+            await publishClient.connect();
+            await publishClient.publish(this.channelName, message);
+            await publishClient.disconnect();
             this.logger.debug(`Published sync event: ${event.type}`, { event });
         }
         catch (error) {

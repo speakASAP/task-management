@@ -13,7 +13,7 @@ export class OpenAIClient {
     private readonly maxFailures: number = 3;
     private readonly timeoutMs: number = 30000;
 
-    constructor(apiKey: string, model: string = 'gpt-3.5-turbo') {
+    constructor(apiKey: string, model: string = 'gpt-3.5-turbo', baseURL?: string) {
         this.config = {
             apiKey,
             model,
@@ -23,10 +23,17 @@ export class OpenAIClient {
             retries: 3
         };
 
-        this.client = new OpenAI({
+        // Support OpenRouter and other OpenAI-compatible providers
+        const clientConfig: any = {
             apiKey: this.config.apiKey,
             timeout: this.config.timeout
-        });
+        };
+
+        if (baseURL) {
+            clientConfig.baseURL = baseURL;
+        }
+
+        this.client = new OpenAI(clientConfig);
 
         this.logger = new Logger();
     }
@@ -97,49 +104,61 @@ export class OpenAIClient {
             `${index + 1}. ${todo.name} (Status: ${todo.status}, Created: ${todo.createdAt.toISOString()})`
         ).join('\n');
 
-        return `Please analyze the following todo items and provide priority scores, reasoning, and impact estimates for each:
+        return `Analyze these todo items and prioritize them. Return ONLY a valid JSON array with no additional text, markdown, or formatting:
 
 ${todoList}
 
 For each todo, provide:
-1. Priority score (1-10, where 10 is highest priority)
-2. Reasoning for the priority score
-3. Suggested order (1-based ranking)
-4. Estimated impact (low/medium/high)
-5. Relevant tags (array of strings)
+- priority: number (1-10, 10 = highest)
+- reasoning: string (brief explanation)
+- suggestedOrder: number (1-based ranking)
+- estimatedImpact: "low" | "medium" | "high"
+- tags: string[] (relevant tags)
 
-Respond with a JSON array where each object has:
-{
-  "priority": number,
-  "reasoning": string,
-  "suggestedOrder": number,
-  "estimatedImpact": "low" | "medium" | "high",
-  "tags": string[]
-}
+Return format:
+[{"priority": 10, "reasoning": "Critical security issue", "suggestedOrder": 1, "estimatedImpact": "high", "tags": ["security", "urgent"]}, ...]
 
-Consider factors like:
-- Urgency and deadlines
-- Dependencies between tasks
-- Business value and impact
-- Effort required
-- Current status (pending vs completed)`;
+Consider: urgency and deadline, business value and impact, dependencies on other tasks, efforts needed, and current status.`;
     }
 
     private parseAnalysisResponse(response: string): TodoAnalysis[] {
         try {
-            // Try to extract JSON from the response
-            const jsonMatch = response.match(/\[[\s\S]*\]/);
+            // Clean the response by removing various formatting tags
+            let cleanedResponse = response
+                .replace(/<s>/g, '') // Remove <s> tags
+                .replace(/\[B_INST\]/g, '') // Remove [B_INST] tags
+                .replace(/\[\/B_INST\]/g, '') // Remove [/B_INST] tags
+                .replace(/\[OUT\]/g, '') // Remove [OUT] markers
+                .replace(/```json\s*/g, '') // Remove markdown code blocks
+                .replace(/```\s*/g, '') // Remove closing code blocks
+                .replace(/<[^>]*>/g, '') // Remove any remaining HTML/XML tags
+                .trim();
+
+            // Try to find JSON array - look for the pattern that starts with [ and ends with ]
+            // Use a more specific regex to find complete JSON arrays
+            const jsonMatch = cleanedResponse.match(/\[\s*\{[\s\S]*?\}\s*(?:,\s*\{[\s\S]*?\}\s*)*\]/);
+            
             if (!jsonMatch) {
-                throw new Error('No JSON array found in response');
+                // Fallback: try to find any JSON array
+                const fallbackMatch = cleanedResponse.match(/\[[\s\S]*?\]/);
+                if (!fallbackMatch) {
+                    throw new Error('No JSON array found in response');
+                }
+                cleanedResponse = fallbackMatch[0];
+            } else {
+                cleanedResponse = jsonMatch[0];
             }
 
-            const analysis = JSON.parse(jsonMatch[0]);
+            const analysis = JSON.parse(cleanedResponse);
             
             if (!Array.isArray(analysis)) {
                 throw new Error('Response is not an array');
             }
 
-            return analysis.map((item, index) => ({
+            // Limit to reasonable number of items (max 20)
+            const limitedAnalysis = analysis.slice(0, 20);
+
+            return limitedAnalysis.map((item, index) => ({
                 priority: Math.max(1, Math.min(10, item.priority || 5)),
                 reasoning: item.reasoning || 'No reasoning provided',
                 suggestedOrder: item.suggestedOrder || index + 1,
@@ -151,6 +170,8 @@ Consider factors like:
             }));
         } catch (error) {
             this.logger.error('Failed to parse AI analysis response:', error);
+            this.logger.debug('Raw response length:', response.length);
+            this.logger.debug('Raw response preview:', response.substring(0, 500) + '...');
             // Return fallback analysis
             return this.generateFallbackAnalysis(response);
         }

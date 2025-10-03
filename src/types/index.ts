@@ -59,6 +59,7 @@ export interface ServerConfig {
     redisUrl: string;
     openaiApiKey: string;
     openaiModel: string;
+    openaiBaseUrl?: string;
     logLevel: string;
     aiAnalysisEnabled: boolean;
     aiAnalysisCacheTtl: number;

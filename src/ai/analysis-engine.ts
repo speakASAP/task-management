@@ -17,7 +17,9 @@ export class AnalysisEngine {
         this.logger = new Logger(config.logLevel);
         
         if (config.openaiApiKey) {
-            this.openaiClient = new OpenAIClient(config.openaiApiKey, config.openaiModel);
+            // Support OpenRouter and other OpenAI-compatible providers
+            const baseURL = config.openaiBaseUrl || undefined;
+            this.openaiClient = new OpenAIClient(config.openaiApiKey, config.openaiModel, baseURL);
         } else {
             this.logger.warn('OpenAI API key not provided, AI analysis will use fallback methods');
         }

@@ -8,7 +8,7 @@ export declare class OpenAIClient {
     private lastFailureTime;
     private readonly maxFailures;
     private readonly timeoutMs;
-    constructor(apiKey: string, model?: string);
+    constructor(apiKey: string, model?: string, baseURL?: string);
     private isCircuitBreakerOpen;
     private recordSuccess;
     private recordFailure;

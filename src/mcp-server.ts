@@ -30,7 +30,7 @@ export class MCPServer {
         this.config = this.loadConfig();
         this.logger = new Logger(this.config.logLevel);
         this.redisClient = new RedisClient(this.config.redisUrl, this.config.redisPoolSize);
-        this.todoStorage = new TodoStorage(this.redisClient, this.config.nodeId, this.config);
+        this.todoStorage = new TodoStorage(this.redisClient, 'global', this.config);
         this.stateSync = new StateSync(this.redisClient, this.config.nodeId);
         
         this.app = express();
@@ -45,6 +45,7 @@ export class MCPServer {
             redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
             openaiApiKey: process.env.OPENAI_API_KEY || '',
             openaiModel: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+            openaiBaseUrl: process.env.OPENAI_BASE_URL || undefined,
             logLevel: process.env.APIFY_LOG_LEVEL || 'info',
             aiAnalysisEnabled: process.env.AI_ANALYSIS_ENABLED === 'true',
             aiAnalysisCacheTtl: parseInt(process.env.AI_ANALYSIS_CACHE_TTL || '300'),
@@ -290,15 +291,6 @@ export class MCPServer {
         });
     }
 
-    private async handleMCPRequest(_body: any): Promise<MCPToolResult> {
-        // This method handles HTTP-based MCP requests
-        // For now, we'll implement a simple wrapper
-        return {
-            success: true,
-            message: 'MCP endpoint ready',
-            data: { endpoint: '/mcp', method: 'POST' }
-        };
-    }
 
     private async getHealthStatus(): Promise<HealthCheckResponse> {
         const uptime = Date.now() - this.startTime.getTime();

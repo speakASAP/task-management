@@ -11,7 +11,6 @@ export declare class MCPServer {
     private loadConfig;
     private setupExpress;
     private setupMCPServer;
-    private handleMCPRequest;
     private getHealthStatus;
     start(): Promise<void>;
     stop(): Promise<void>;
