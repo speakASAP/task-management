@@ -79,9 +79,90 @@ export class MCPServer {
         // MCP endpoint
         this.app.post('/mcp', async (req, res) => {
             try {
-                const { method, params } = req.body;
+                const { method, params, id } = req.body;
                 
-                if (method === 'tools/call' && params) {
+                if (method === 'tools/list') {
+                    res.json({
+                        jsonrpc: '2.0',
+                        id,
+                        result: {
+                            tools: [
+                                {
+                                    name: 'todo_add',
+                                    description: 'Add a new todo item',
+                                    inputSchema: {
+                                        type: 'object',
+                                        properties: {
+                                            name: {
+                                                type: 'string',
+                                                description: 'Name of the todo item'
+                                            }
+                                        },
+                                        required: ['name']
+                                    }
+                                },
+                                {
+                                    name: 'todo_list',
+                                    description: 'List all todo items',
+                                    inputSchema: {
+                                        type: 'object',
+                                        properties: {
+                                            status: {
+                                                type: 'string',
+                                                enum: ['pending', 'completed', 'all'],
+                                                description: 'Filter by status (optional)'
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    name: 'todo_remove',
+                                    description: 'Remove a todo item by ID',
+                                    inputSchema: {
+                                        type: 'object',
+                                        properties: {
+                                            id: {
+                                                type: 'string',
+                                                description: 'ID of the todo item to remove'
+                                            }
+                                        },
+                                        required: ['id']
+                                    }
+                                },
+                                {
+                                    name: 'todo_mark_done',
+                                    description: 'Mark a todo item as completed',
+                                    inputSchema: {
+                                        type: 'object',
+                                        properties: {
+                                            id: {
+                                                type: 'string',
+                                                description: 'ID of the todo item to mark as done'
+                                            }
+                                        },
+                                        required: ['id']
+                                    }
+                                },
+                                {
+                                    name: 'todo_clear',
+                                    description: 'Clear all todo items',
+                                    inputSchema: {
+                                        type: 'object',
+                                        properties: {}
+                                    }
+                                },
+                                {
+                                    name: 'todo_analyze',
+                                    description: 'Analyze and prioritize todo items using AI',
+                                    inputSchema: {
+                                        type: 'object',
+                                        properties: {}
+                                    }
+                                }
+                            ]
+                        }
+                    });
+                } else if (method === 'tools/call' && params) {
                     const { name, arguments: args } = params;
                     let result: MCPToolResult;
                     
@@ -111,20 +192,37 @@ export class MCPServer {
                             };
                     }
                     
-                    res.json(result);
+                    res.json({
+                        jsonrpc: '2.0',
+                        id,
+                        result: {
+                            content: [
+                                {
+                                    type: 'text',
+                                    text: JSON.stringify(result)
+                                }
+                            ]
+                        }
+                    });
                 } else {
                     res.json({
-                        success: false,
-                        error: 'Invalid MCP request format',
-                        message: 'Expected method: tools/call with params'
+                        jsonrpc: '2.0',
+                        id,
+                        error: {
+                            code: -32601,
+                            message: 'Method not found'
+                        }
                     });
                 }
             } catch (error) {
                 this.logger.error('MCP request failed:', error);
                 res.status(500).json({
-                    success: false,
-                    error: 'Internal server error',
-                    message: 'MCP request processing failed'
+                    jsonrpc: '2.0',
+                    id: req.body.id,
+                    error: {
+                        code: -32603,
+                        message: 'Internal error'
+                    }
                 });
             }
         });
