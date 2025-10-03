@@ -152,6 +152,56 @@ CACHE_TTL=600
 MAX_CONCURRENT_REQUESTS=100
 ```
 
+## 🔌 Port Configuration
+
+### Docker Multi-Node Setup
+
+| Port | Service | Description | Access |
+|------|---------|-------------|---------|
+| **3000** | Caddy Load Balancer | Main entry point for all requests | `http://localhost:3000` |
+| **3001** | MCP Server 1 | Internal server instance (node-1) | Internal only |
+| **3002** | MCP Server 2 | Internal server instance (node-2) | Internal only |
+| **6379** | Redis | Database and pub/sub messaging | Internal only |
+
+### Single Node Setup
+
+| Port | Service | Description | Access |
+|------|---------|-------------|---------|
+| **3000** | MCP Server | Direct server access | `http://localhost:3000` |
+| **6379** | Redis | Database and pub/sub messaging | `redis://localhost:6379` |
+
+### Testing Ports
+
+| Port | Service | Description | Usage |
+|------|---------|-------------|-------|
+| **3000** | Live Server Tests | Tests actual running Docker server | `npm run test:live` |
+| **3003** | Integration Tests | Isolated test server instance | `npm test` |
+| **Various** | Unit/E2E Tests | Mocked services for testing | `npm test` |
+
+### Key Endpoints
+
+- **Health Check**: `http://localhost:3000/health`
+- **MCP Endpoint**: `http://localhost:3000/mcp`
+- **Server Info**: `http://localhost:3000/`
+
+### Quick Port Reference
+
+```bash
+# Check what's running on each port
+lsof -i :3000  # Load balancer
+lsof -i :3001  # MCP Server 1
+lsof -i :3002  # MCP Server 2
+lsof -i :6379  # Redis
+
+# Test specific ports
+curl http://localhost:3000/health  # Test load balancer
+curl http://localhost:3001/health  # Test server 1 directly
+curl http://localhost:3002/health  # Test server 2 directly
+
+# Check Docker container ports
+docker compose ps
+```
+
 ## 📡 API Endpoints
 
 ### Health Check
@@ -209,19 +259,37 @@ Returns basic server information and status.
 
 ### Testing
 
+**⚠️ Important: Start Docker containers first before running tests!**
+
 ```bash
-# Run comprehensive end-to-end tests (recommended)
+# 1. Start the complete Docker stack first
+docker compose up -d
+
+# 2. Wait for all containers to be healthy (about 10-15 seconds)
+docker compose ps
+
+# 3. Run comprehensive end-to-end tests (recommended)
 ./comprehensive-test.sh
 
-# Run unit tests
+# 4. Run all tests (unit + integration + live server tests)
 npm test
 
-# Run tests with coverage
+# 5. Run tests with coverage
 npm run test:coverage
 
-# Run tests in watch mode
+# 6. Run tests in watch mode
 npm run test:watch
+
+# 7. Run only live server tests (tests actual running server on port 3000)
+npm run test:live
 ```
+
+**Test Types:**
+
+- **Live Server Tests**: Test the actual running Docker server on port 3000
+- **Integration Tests**: Test MCP server logic with mocked dependencies
+- **Unit Tests**: Test individual components in isolation
+- **E2E Tests**: Test complete workflows with mocked services
 
 #### Comprehensive Test Suite
 
@@ -235,12 +303,26 @@ The `comprehensive-test.sh` script provides complete end-to-end testing of the M
 - **Error Handling**: Invalid inputs and edge cases
 - **State Consistency**: Todo persistence verification
 
+**Prerequisites:**
+
+```bash
+# Start Docker containers first
+docker compose up -d
+
+# Wait for containers to be healthy
+docker compose ps
+```
+
+**Run the comprehensive test suite:**
+
 ```bash
 # Run the comprehensive test suite
 ./comprehensive-test.sh
 
 # Expected output: 12/12 tests passing ✅
 ```
+
+**Note:** The comprehensive test script requires the Docker stack to be running as it tests the actual live server on port 3000.
 
 ## 🤖 AI Analysis
 
@@ -398,6 +480,29 @@ The server implements the full MCP protocol and can be integrated with any MCP-c
    - Change SERVER_PORT in environment
    - Check for conflicting processes
 
+4. **Tests Failing with "EADDRINUSE" Error**
+   - **Solution**: Start Docker containers first before running tests
+
+   ```bash
+   docker compose up -d
+   npm test
+   ```
+
+5. **Comprehensive Test Script Hanging**
+   - **Solution**: Ensure Docker stack is running and healthy
+
+   ```bash
+   docker compose ps  # Check all containers are healthy
+   ./comprehensive-test.sh
+   ```
+
+6. **Tests Not Finding Server on Port 3000**
+   - **Solution**: Verify load balancer is running
+
+   ```bash
+   curl http://localhost:3000/health
+   ```
+
 ### Debug Mode
 
 Enable debug logging:
@@ -405,6 +510,25 @@ Enable debug logging:
 ```bash
 APIFY_LOG_LEVEL=DEBUG npm run dev
 ```
+
+### Testing Troubleshooting
+
+**If tests fail:**
+
+1. Ensure Docker containers are running: `docker compose ps`
+2. Check server health: `curl http://localhost:3000/health`
+3. Run tests step by step:
+
+   ```bash
+   # Test live server only
+   npm run test:live
+   
+   # Test all components
+   npm test
+   
+   # Test comprehensive suite
+   ./comprehensive-test.sh
+   ```
 
 ## 📈 Future Enhancements
 
