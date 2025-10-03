@@ -387,4 +387,9 @@ export class TodoStorage {
         }
         this.logger.debug('Cache invalidated for todo operations');
     }
+
+    public destroy(): void {
+        this.cache.destroy();
+        this.logger.debug('TodoStorage destroyed');
+    }
 }

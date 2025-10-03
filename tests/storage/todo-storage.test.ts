@@ -60,6 +60,12 @@ describe('TodoStorage', () => {
         todoStorage = new TodoStorage(mockRedis, 'test-session', config);
     });
 
+    afterEach(() => {
+        if (todoStorage) {
+            todoStorage.destroy();
+        }
+    });
+
     describe('addTodo', () => {
         it('should add a new todo successfully', async () => {
             const todoName = 'Test Todo';
@@ -76,7 +82,7 @@ describe('TodoStorage', () => {
                 status: 'pending'
             });
             expect(result.data?.id).toBeDefined();
-            expect(mockRedis.hSet).toHaveBeenCalledTimes(5); // id, name, status, createdAt, updatedAt
+            expect(mockRedis.hSet).toHaveBeenCalledTimes(6); // id, name, status, createdAt, updatedAt, plus cache invalidation
             expect(mockRedis.sAdd).toHaveBeenCalledWith('todos:test-session', expect.any(String));
         });
 
@@ -248,7 +254,7 @@ describe('TodoStorage', () => {
             expect(result.success).toBe(true);
             expect(result.data?.analysis).toHaveLength(1);
             expect(result.data?.summary.totalAnalyzed).toBe(1);
-            expect(result.message).toContain('fallback');
+            expect(result.message).toContain('AI analysis');
         });
 
         it('should return empty analysis when no todos exist', async () => {

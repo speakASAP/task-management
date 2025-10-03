@@ -357,6 +357,7 @@ export class MCPServer {
         try {
             await this.redisClient.disconnect();
             await this.stateSync.stop();
+            this.todoStorage.destroy();
             this.logger.info('Server stopped gracefully');
         } catch (error) {
             this.logger.error('Error during server shutdown:', error);

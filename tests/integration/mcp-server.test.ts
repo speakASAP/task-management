@@ -6,6 +6,38 @@ import { MCPServer } from '../../src/mcp-server';
 jest.mock('../../src/redis/client');
 jest.mock('../../src/ai/analysis-engine');
 
+// Mock Redis client implementation
+const mockRedisClient = {
+    connect: jest.fn().mockResolvedValue(undefined),
+    disconnect: jest.fn().mockResolvedValue(undefined),
+    isHealthy: jest.fn().mockReturnValue(true),
+    getClient: jest.fn().mockReturnValue({
+        options: {
+            url: 'redis://localhost:6379'
+        }
+    }),
+    hSet: jest.fn().mockResolvedValue(1),
+    hGetAll: jest.fn().mockResolvedValue({}),
+    hExists: jest.fn().mockResolvedValue(false),
+    hDel: jest.fn().mockResolvedValue(1),
+    hIncrBy: jest.fn().mockResolvedValue(1),
+    sAdd: jest.fn().mockResolvedValue(1),
+    sMembers: jest.fn().mockResolvedValue([]),
+    sRem: jest.fn().mockResolvedValue(1),
+    del: jest.fn().mockResolvedValue(1),
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    keys: jest.fn().mockResolvedValue([]),
+    ping: jest.fn().mockResolvedValue('PONG'),
+    publish: jest.fn().mockResolvedValue(1),
+    subscribe: jest.fn().mockResolvedValue(undefined),
+    unsubscribe: jest.fn().mockResolvedValue(undefined)
+};
+
+jest.mock('../../src/redis/client', () => ({
+    RedisClient: jest.fn().mockImplementation(() => mockRedisClient)
+}));
+
 describe('MCP Server Integration Tests', () => {
     let server: MCPServer;
     let app: any;
@@ -26,7 +58,16 @@ describe('MCP Server Integration Tests', () => {
     });
 
     afterAll(async () => {
-        await server.stop();
+        try {
+            if (server) {
+                await server.stop();
+            }
+        } catch (error) {
+            // Ignore cleanup errors
+        }
+        
+        // Force cleanup of any remaining handles
+        await new Promise(resolve => setTimeout(resolve, 100));
     });
 
     describe('Health Endpoint', () => {
@@ -58,11 +99,17 @@ describe('MCP Server Integration Tests', () => {
         it('should handle MCP requests', async () => {
             const response = await request(app)
                 .post('/mcp')
-                .send({})
+                .send({
+                    method: 'tools/call',
+                    params: {
+                        name: 'todo_list',
+                        arguments: {}
+                    }
+                })
                 .expect(200);
 
             expect(response.body).toHaveProperty('success', true);
-            expect(response.body).toHaveProperty('message');
+            expect(response.body).toHaveProperty('data');
         });
     });
 

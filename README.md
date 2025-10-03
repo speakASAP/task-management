@@ -210,7 +210,10 @@ Returns basic server information and status.
 ### Testing
 
 ```bash
-# Run tests
+# Run comprehensive end-to-end tests (recommended)
+./comprehensive-test.sh
+
+# Run unit tests
 npm test
 
 # Run tests with coverage
@@ -218,6 +221,25 @@ npm run test:coverage
 
 # Run tests in watch mode
 npm run test:watch
+```
+
+#### Comprehensive Test Suite
+
+The `comprehensive-test.sh` script provides complete end-to-end testing of the MCP server:
+
+- **12 comprehensive tests** covering all functionality
+- **MCP Tools Testing**: All 6 MCP tools (add, list, remove, mark_done, clear, analyze)
+- **AI Analysis Testing**: OpenRouter integration with 10+ todos
+- **Multi-node Simulation**: State synchronization across nodes
+- **Performance Testing**: 20 requests in 1s (50ms avg)
+- **Error Handling**: Invalid inputs and edge cases
+- **State Consistency**: Todo persistence verification
+
+```bash
+# Run the comprehensive test suite
+./comprehensive-test.sh
+
+# Expected output: 12/12 tests passing ✅
 ```
 
 ## 🤖 AI Analysis

@@ -18,16 +18,17 @@
         "preset": "ts-jest",
         "testEnvironment": "node",
         "extensionsToTreatAsEsm": [".ts"],
-        "globals": {
-            "ts-jest": {
-                "useESM": true
-            }
-        },
         "moduleNameMapper": {
-            "^(\\.{1,2}/.*)\\.js$": "$1"
+            "^(\\.{1,2}/.*)\\.js$": "$1",
+            "^uuid$": "<rootDir>/tests/__mocks__/uuid.js"
+        },
+        "transform": {
+            "^.+\\.ts$": ["ts-jest", {
+                "useESM": true
+            }]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(uuid)/)"
+            "node_modules/(?!(uuid|@types/uuid)/)"
         ],
         "testMatch": [
             "**/tests/**/*.test.ts",
@@ -48,7 +49,9 @@
             "<rootDir>/tests/setup.ts"
         ],
         "testTimeout": 10000,
-        "verbose": true
+        "verbose": true,
+        "forceExit": true,
+        "detectOpenHandles": true
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.18.1",

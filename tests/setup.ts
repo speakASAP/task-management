@@ -25,3 +25,20 @@ global.console = {
 afterEach(() => {
   jest.clearAllMocks();
 });
+
+// Global cleanup after all tests
+afterAll(async () => {
+  // Force close any remaining handles
+  if (global.gc) {
+    global.gc();
+  }
+  
+  // Give time for cleanup
+  await new Promise(resolve => setTimeout(resolve, 100));
+});
+
+// Clean up after each test to prevent memory leaks
+afterEach(() => {
+  // Clear any timers that might be running
+  jest.clearAllTimers();
+});

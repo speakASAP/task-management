@@ -58,6 +58,12 @@ describe('Todo Workflow E2E Tests', () => {
         todoStorage = new TodoStorage(mockRedis, 'test-session', config);
     });
 
+    afterEach(() => {
+        if (todoStorage) {
+            todoStorage.destroy();
+        }
+    });
+
     describe('Complete Todo Lifecycle', () => {
         it('should handle complete todo workflow from creation to completion', async () => {
             // Setup mocks for the complete workflow
@@ -197,10 +203,40 @@ describe('Todo Workflow E2E Tests', () => {
             expect(listResult.data?.pending).toBe(2);
             expect(listResult.data?.completed).toBe(1);
 
-            // Test filtering by status
+            // Test filtering by status - need to setup mocks for filtered calls
+            mockRedis.sMembers.mockResolvedValue([
+                todo1.data?.id!,
+                todo3.data?.id!  // Only pending todos
+            ]);
+            mockRedis.hGetAll
+                .mockResolvedValueOnce({
+                    id: todo1.data?.id!,
+                    name: 'High priority task',
+                    status: 'pending',
+                    createdAt: todo1.data?.createdAt.toISOString()!,
+                    updatedAt: todo1.data?.updatedAt.toISOString()!
+                })
+                .mockResolvedValueOnce({
+                    id: todo3.data?.id!,
+                    name: 'Low priority task',
+                    status: 'pending',
+                    createdAt: todo3.data?.createdAt.toISOString()!,
+                    updatedAt: todo3.data?.updatedAt.toISOString()!
+                });
+
             const pendingResult = await todoStorage.listTodos('pending');
             expect(pendingResult.success).toBe(true);
             expect(pendingResult.data?.todos).toHaveLength(2);
+
+            // Setup mock for completed todos
+            mockRedis.sMembers.mockResolvedValue([todo2.data?.id!]);
+            mockRedis.hGetAll.mockResolvedValue({
+                id: todo2.data?.id!,
+                name: 'Medium priority task',
+                status: 'completed',
+                createdAt: todo2.data?.createdAt.toISOString()!,
+                updatedAt: new Date().toISOString()
+            });
 
             const completedResult = await todoStorage.listTodos('completed');
             expect(completedResult.success).toBe(true);
