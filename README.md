@@ -343,19 +343,19 @@ The application includes intelligent task analysis powered by OpenAI/OpenRouter:
 
 ### Setting up AI Analysis
 
-**Option 1: OpenAI**
+#### Option 1: OpenAI
 
 ```bash
 export OPENAI_API_KEY=your_openai_api_key_here
 npm run dev
 ```
 
-**Option 2: OpenRouter (Free)**
+#### Option 2: OpenRouter (Free)
 
 ```bash
 export OPENAI_API_KEY=your_openrouter_api_key_here
 export OPENAI_BASE_URL=https://openrouter.ai/api/v1
-export OPENAI_MODEL=mistralai/mistral-7b-instruct:free
+export OPENAI_MODEL=google/gemini-2.0-flash-exp:free
 npm run dev
 ```
 

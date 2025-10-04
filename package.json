@@ -18,15 +18,20 @@
     "jest": {
         "preset": "ts-jest",
         "testEnvironment": "node",
-        "extensionsToTreatAsEsm": [".ts"],
+        "extensionsToTreatAsEsm": [
+            ".ts"
+        ],
         "moduleNameMapper": {
             "^(\\.{1,2}/.*)\\.js$": "$1",
             "^uuid$": "<rootDir>/tests/__mocks__/uuid.js"
         },
         "transform": {
-            "^.+\\.ts$": ["ts-jest", {
-                "useESM": true
-            }]
+            "^.+\\.ts$": [
+                "ts-jest",
+                {
+                    "useESM": true
+                }
+            ]
         },
         "transformIgnorePatterns": [
             "node_modules/(?!(uuid|@types/uuid)/)"

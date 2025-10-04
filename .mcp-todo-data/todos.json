@@ -1,0 +1,22 @@
+{
+  "todo_1759582608828_kgn5ukpb7": {
+    "id": "todo_1759582608828_kgn5ukpb7",
+    "name": "Test standalone server",
+    "status": "pending",
+    "createdAt": "2025-10-04T12:56:48.828Z",
+    "updatedAt": "2025-10-04T12:56:48.831Z",
+    "priority": 8,
+    "tags": [],
+    "projectId": "default"
+  },
+  "todo_1759582764426_9v1jnez2k": {
+    "id": "todo_1759582764426_9v1jnez2k",
+    "name": "Test without Docker",
+    "status": "pending",
+    "createdAt": "2025-10-04T12:59:24.426Z",
+    "updatedAt": "2025-10-04T12:59:24.428Z",
+    "priority": 9,
+    "tags": [],
+    "projectId": "default"
+  }
+}
