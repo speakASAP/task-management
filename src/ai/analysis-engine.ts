@@ -127,40 +127,16 @@ export class AnalysisEngine {
         };
     }
 
-    private async getCachedAnalysis(todos: Todo[]): Promise<TodoAnalysisResponse | null> {
-        try {
-            const cacheKey = this.getCacheKey(todos);
-            const cached = await this.redis.get(cacheKey);
-            
-            if (cached) {
-                return JSON.parse(cached);
-            }
-            
-            return null;
-        } catch (error) {
-            this.logger.warn('Failed to get cached analysis:', error);
-            return null;
-        }
+    private async getCachedAnalysis(_todos: Todo[]): Promise<TodoAnalysisResponse | null> {
+        // Disable caching for SQLite setup
+        return null;
     }
 
-    private async cacheAnalysis(todos: Todo[], analysis: TodoAnalysisResponse): Promise<void> {
-        try {
-            const cacheKey = this.getCacheKey(todos);
-            const cacheData = JSON.stringify(analysis);
-            
-            await this.redis.set(cacheKey, cacheData, this.config.aiAnalysisCacheTtl);
-            this.logger.debug('Analysis cached successfully');
-        } catch (error) {
-            this.logger.warn('Failed to cache analysis:', error);
-        }
+    private async cacheAnalysis(_todos: Todo[], _analysis: TodoAnalysisResponse): Promise<void> {
+        // Disable caching for SQLite setup
+        return;
     }
 
-    private getCacheKey(todos: Todo[]): string {
-        // Create a hash of the todos for cache key
-        const todoIds = todos.map(t => t.id).sort().join(',');
-        const todoStatuses = todos.map(t => t.status).sort().join(',');
-        return `${this.cacheKey}:${Buffer.from(todoIds + todoStatuses).toString('base64').slice(0, 16)}`;
-    }
 
     public async clearCache(): Promise<void> {
         try {

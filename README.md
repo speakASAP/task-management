@@ -50,9 +50,12 @@ The server exposes the following MCP tools:
 ### Prerequisites
 
 - Node.js 18+
+- Cursor IDE (for MCP integration)
 - OpenAI API key or OpenRouter account (optional, fallback analysis available)
 
 ### Installation
+
+#### For Individual Use
 
 1. **Clone the repository**
 
@@ -73,13 +76,47 @@ The server exposes the following MCP tools:
    npm run build
    ```
 
-4. **Start the server**
+4. **Install Cursor IDE integration**
+
+   ```bash
+   npm run install-cursor
+   ```
+
+5. **Start the server**
 
    ```bash
    npm start
    ```
 
+6. **Restart Cursor IDE**
+
 The server will start on `http://localhost:3300` with both MCP protocol support and web UI.
+
+#### For Easy Setup
+
+**One-command setup:**
+
+```bash
+git clone <repository-url>
+cd task-management
+./setup.sh
+```
+
+This automatically:
+
+- Installs dependencies
+- Builds the project
+- Configures Cursor IDE
+- Sets up everything needed
+
+**For updates after git pull:**
+
+```bash
+git pull
+./setup.sh
+```
+
+📚 **See [SETUP.md](SETUP.md) for detailed setup guide**
 
 ### 🌐 Web Interface
 

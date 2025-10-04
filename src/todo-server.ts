@@ -454,8 +454,8 @@ class UnifiedMCPServer {
   }
 
   private async markTodoDone(id: string): Promise<any> {
-    const stmt = this.db.prepare('UPDATE todos SET status = ?, updatedAt = ? WHERE id = ? AND projectId = ?');
-    const result = stmt.run('completed', new Date().toISOString(), id, this.currentProjectId);
+    const stmt = this.db.prepare('UPDATE todos SET status = ?, priority = ?, updatedAt = ? WHERE id = ? AND projectId = ?');
+    const result = stmt.run('completed', 10, new Date().toISOString(), id, this.currentProjectId);
     
     if (result.changes === 0) {
       return { success: false, error: 'Todo not found' };

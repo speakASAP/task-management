@@ -406,6 +406,213 @@
             margin-bottom: 20px;
         }
         
+        /* Confirmation Modal Styles */
+        .confirm-modal {
+            max-width: 450px;
+            text-align: center;
+        }
+        
+        .modal-body {
+            padding: 20px 0;
+        }
+        
+        
+        .confirm-modal p {
+            font-size: 1.1rem;
+            color: #555;
+            line-height: 1.5;
+            margin: 0;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .cancel-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+        
+        .cancel-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+        
+        .confirm-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+        
+        .confirm-btn:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+        
+        /* Success/Error Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 3000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background: #28a745;
+        }
+        
+        .notification.error {
+            background: #dc3545;
+        }
+        
+        .notification.warning {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        /* Completed Task Compact View */
+        .todo-item.completed {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+        }
+        
+        .todo-item.completed .todo-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+        }
+        
+        .todo-item.completed .todo-name {
+            flex: 1;
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+        
+        .todo-item.completed .todo-priority {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        .expand-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .expand-btn:hover {
+            background: #e9ecef;
+        }
+        
+        .expand-icon {
+            font-size: 0.8rem;
+            transition: transform 0.2s;
+        }
+        
+        .expand-btn.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+        
+        .completed-details {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .completed-details.collapsed {
+            display: none;
+        }
+        
+        .completed-details.expanded {
+            display: block;
+        }
+        
+        .completed-info {
+            margin-bottom: 10px;
+        }
+        
+        .completed-date {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        
+        .completed-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .completed-tags .tag {
+            background: #e9ecef;
+            color: #495057;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+        }
+        
+        .completed-actions {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .completed-actions .action-btn {
+            padding: 6px 12px;
+            font-size: 0.9rem;
+        }
+        
+        /* AI Guidance Always Open */
+        .ai-guidance-header {
+            cursor: default !important;
+            color: #495057;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .ai-guidance-header:hover {
+            background: none !important;
+        }
+        
         .form-label {
             display: block;
             margin-bottom: 5px;
@@ -722,6 +929,23 @@
         </div>
     </div>
     
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content confirm-modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="confirmTitle">Confirm Action</h3>
+                <button class="close-btn" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage">Are you sure you want to proceed?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" onclick="closeConfirmModal()" id="confirmCancel">Cancel</button>
+                <button class="confirm-btn" onclick="executeConfirmAction()" id="confirmAction">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // API base URL
         const API_BASE = '/api';
@@ -729,6 +953,13 @@
         // Load tasks on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadTodos();
+        });
+        
+        // Keyboard support for confirmation modal
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeConfirmModal();
+            }
         });
         
         // Add task form handler
@@ -793,8 +1024,9 @@
                     closeModal('addModal');
                     form.reset();
                     loadTodos();
+                    showNotification('Task added successfully!', 'success');
                 } else {
-                    alert('Failed to add task: ' + data.error);
+                    showNotification('Failed to add task: ' + data.error, 'error');
                 }
             } catch (error) {
                 alert('Error adding task: ' + error.message);
@@ -812,8 +1044,9 @@
                 
                 if (data.success) {
                     loadTodos();
+                    showNotification('Task marked as completed!', 'success');
                 } else {
-                    alert('Failed to mark task as done: ' + data.error);
+                    showNotification('Failed to mark task as done: ' + data.error, 'error');
                 }
             } catch (error) {
                 alert('Error marking task as done: ' + error.message);
@@ -822,44 +1055,58 @@
         
         // Remove task
         async function removeTask(taskId) {
-            if (confirm('Are you sure you want to remove this task?')) {
-                try {
-                    const response = await fetch(`${API_BASE}/todos/${taskId}`, {
-                        method: 'DELETE'
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        loadTodos();
-                    } else {
-                        alert('Failed to remove task: ' + data.error);
+            showConfirmModal(
+                'Delete Task',
+                'Are you sure you want to remove this task? This action cannot be undone.',
+                'Delete',
+                'Cancel',
+                async () => {
+                    try {
+                        const response = await fetch(`${API_BASE}/todos/${taskId}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            loadTodos();
+                            showNotification('Task removed successfully!', 'success');
+                        } else {
+                            showNotification('Failed to remove task: ' + data.error, 'error');
+                        }
+                    } catch (error) {
+                        showError('Error removing task: ' + error.message);
                     }
-                } catch (error) {
-                    alert('Error removing task: ' + error.message);
                 }
-            }
+            );
         }
         
         // Clear all tasks
         async function clearAllTasks() {
-            if (confirm('Are you sure you want to clear all tasks? This cannot be undone.')) {
-                try {
-                    const response = await fetch(`${API_BASE}/todos`, {
-                        method: 'DELETE'
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        loadTodos();
-                    } else {
-                        alert('Failed to clear tasks: ' + data.error);
+            showConfirmModal(
+                'Clear All Tasks',
+                'Are you sure you want to clear all tasks? This action cannot be undone and will remove all tasks from the current project.',
+                'Clear All',
+                'Cancel',
+                async () => {
+                    try {
+                        const response = await fetch(`${API_BASE}/todos`, {
+                            method: 'DELETE'
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            loadTodos();
+                            showNotification('All tasks cleared successfully!', 'success');
+                        } else {
+                            showNotification('Failed to clear tasks: ' + data.error, 'error');
+                        }
+                    } catch (error) {
+                        showError('Error clearing tasks: ' + error.message);
                     }
-                } catch (error) {
-                    alert('Error clearing tasks: ' + error.message);
                 }
-            }
+            );
         }
         
         // AI Analyze tasks
@@ -1042,6 +1289,25 @@
             }
         }
         
+        // Toggle completed task details
+        function toggleCompletedDetails(todoId) {
+            const details = document.getElementById(`completed-${todoId}`);
+            const button = document.getElementById(`expand-${todoId}`);
+            const icon = button.querySelector('.expand-icon');
+            
+            if (details.classList.contains('collapsed')) {
+                details.classList.remove('collapsed');
+                details.classList.add('expanded');
+                button.classList.add('expanded');
+                icon.textContent = '▲';
+            } else {
+                details.classList.remove('expanded');
+                details.classList.add('collapsed');
+                button.classList.remove('expanded');
+                icon.textContent = '▼';
+            }
+        }
+        
         // Update statistics
         function updateStats(data) {
             document.getElementById('totalTodos').textContent = data.total || 0;
@@ -1099,6 +1365,19 @@
                 projectGroups.get(projectId).push(todo);
             });
             
+            // Sort todos within each project: pending first (by priority), then completed
+            projectGroups.forEach((projectTodos, projectId) => {
+                projectTodos.sort((a, b) => {
+                    // First sort by status: pending before completed
+                    if (a.status !== b.status) {
+                        if (a.status === 'pending') return -1;
+                        if (b.status === 'pending') return 1;
+                    }
+                    // Then sort by priority: lower number = higher priority
+                    return a.priority - b.priority;
+                });
+            });
+            
             // Sort projects: current project first, then others
             const sortedProjects = Array.from(projectGroups.entries()).sort(([a], [b]) => {
                 if (a === currentProjectId) return -1;
@@ -1134,8 +1413,47 @@
                                             <div class="todo-priority ${getPriorityClass(todo.priority)}">
                                                 Priority ${todo.priority}
                                             </div>
+                                            ${todo.status === 'completed' ? `
+                                                <button class="expand-btn" onclick="toggleCompletedDetails('${todo.id}')" id="expand-${todo.id}">
+                                                    <span class="expand-icon">▼</span>
+                                                </button>
+                                            ` : ''}
                                         </div>
-                                        ${todo.detailedInstructions ? `
+                                        ${todo.status === 'completed' ? `
+                                            <div class="completed-details collapsed" id="completed-${todo.id}">
+                                                <div class="completed-info">
+                                                    <div class="completed-date">Completed: ${new Date(todo.updatedAt).toLocaleDateString()}</div>
+                                                    <div class="completed-tags">
+                                                        ${todo.tags && todo.tags.length > 0 ? todo.tags.map(tag => `<span class="tag">${tag}</span>`).join('') : ''}
+                                                    </div>
+                                                </div>
+                                                ${todo.detailedInstructions ? `
+                                                    <div class="detail-section">
+                                                        <h4 onclick="toggleDetail('instructions-${todo.id}')" class="detail-toggle">
+                                                            📋 Detailed Instructions: <span class="toggle-icon">▼</span>
+                                                        </h4>
+                                                        <div id="instructions-${todo.id}" class="detail-content collapsed">
+                                                            <p>${todo.detailedInstructions}</p>
+                                                        </div>
+                                                    </div>
+                                                ` : ''}
+                                                ${todo.aiGuidance ? `
+                                                    <div class="detail-section">
+                                                        <h4 class="detail-toggle ai-guidance-header">
+                                                            🤖 AI Guidance:
+                                                        </h4>
+                                                        <div id="ai-${todo.id}" class="detail-content expanded">
+                                                            <p>${todo.aiGuidance}</p>
+                                                        </div>
+                                                    </div>
+                                                ` : ''}
+                                                <div class="completed-actions">
+                                                    <button class="action-btn edit" onclick="editTask('${todo.id}')">✏️ Edit</button>
+                                                    <button class="action-btn delete" onclick="removeTask('${todo.id}')">🗑️ Delete</button>
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                        ${todo.status !== 'completed' && todo.detailedInstructions ? `
                                         <div class="todo-details">
                                             <div class="detail-section">
                                                 <h4 onclick="toggleDetail('instructions-${todo.id}')" class="detail-toggle">
@@ -1147,18 +1465,19 @@
                                             </div>
                                         </div>
                                         ` : ''}
-                                        ${todo.aiGuidance ? `
+                                        ${todo.status !== 'completed' && todo.aiGuidance ? `
                                         <div class="todo-details">
                                             <div class="detail-section">
-                                                <h4 onclick="toggleDetail('guidance-${todo.id}')" class="detail-toggle">
-                                                    🤖 AI Guidance: <span class="toggle-icon">▼</span>
+                                                <h4 class="detail-toggle ai-guidance-header">
+                                                    🤖 AI Guidance:
                                                 </h4>
-                                                <div id="guidance-${todo.id}" class="detail-content collapsed">
+                                                <div id="guidance-${todo.id}" class="detail-content expanded">
                                                     <p>${todo.aiGuidance}</p>
                                                 </div>
                                             </div>
                                         </div>
                                         ` : ''}
+                                        ${todo.status !== 'completed' ? `
                                         <div class="todo-meta">
                                             <div class="todo-tags">
                                                 ${todo.tags.map(tag => `<span class="todo-tag">${tag}</span>`).join('')}
@@ -1172,6 +1491,7 @@
                                             <button class="action-btn complete" onclick="markTaskDone('${todo.id}')">✅ Done</button>
                                             <button class="action-btn delete" onclick="removeTask('${todo.id}')">🗑️ Delete</button>
                                         </div>
+                                        ` : ''}
                                     </div>
                                 `).join('')}
                             </div>
@@ -1209,6 +1529,47 @@
         function showError(message) {
             const container = document.getElementById('projectsContainer');
             container.innerHTML = `<div class="error">${message}</div>`;
+        }
+        
+        // Confirmation modal functions
+        let confirmAction = null;
+        
+        function showConfirmModal(title, message, confirmText, cancelText, action) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmAction').textContent = confirmText;
+            document.getElementById('confirmCancel').textContent = cancelText;
+            confirmAction = action;
+            document.getElementById('confirmModal').style.display = 'block';
+        }
+        
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+            confirmAction = null;
+        }
+        
+        function executeConfirmAction() {
+            if (confirmAction) {
+                confirmAction();
+            }
+            closeConfirmModal();
+        }
+        
+        // Notification functions
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            // Hide notification after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         }
         
         // Modal functions

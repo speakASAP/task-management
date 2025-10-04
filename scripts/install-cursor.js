@@ -16,14 +16,14 @@ const cursorDir = path.dirname(cursorConfigPath);
 console.log('🚀 MCP Todo Server - Cursor Installation');
 console.log('==========================================\n');
 
-// Check if Cursor is installed
+// Check if Cursor is installed (optional check)
 try {
   execSync('cursor --version', { stdio: 'pipe' });
   console.log('✅ Cursor IDE detected');
 } catch (error) {
-  console.log('❌ Cursor IDE not found. Please install Cursor first:');
-  console.log('   https://cursor.sh/');
-  process.exit(1);
+  console.log('⚠️  Cursor IDE not found in PATH, but continuing with setup...');
+  console.log('   Make sure to install Cursor IDE from: https://cursor.sh/');
+  console.log('   The configuration will be ready when you install Cursor.');
 }
 
 // Ensure .cursor directory exists
