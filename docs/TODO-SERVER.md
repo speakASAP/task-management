@@ -30,16 +30,17 @@ Unified MCP Todo Server
 
 ### **Core Server**
 
-- `src/unified-server.ts` - Main unified server implementation
+- `src/todo-server.ts` - Main unified server implementation
+- `src/web-server.ts` - Web server implementation
 - `src/web-ui/index.html` - Modern web interface
 - `bin/mcp-todo-server.js` - CLI executable
 - `scripts/install-cursor.js` - Cursor installation script
 
 ### **Configuration**
 
-- `package-unified.json` - NPM package configuration
-- `tsconfig-unified.json` - TypeScript configuration
-- `install.sh` - Installation script
+- `package.json` - NPM package configuration
+- `tsconfig.json` - TypeScript configuration
+- `install-standalone.sh` - Installation script
 
 ### **Documentation**
 

@@ -77,7 +77,7 @@ function installCursorConfig() {
   config.mcpServers = config.mcpServers || {};
   config.mcpServers['mcp-todo-server'] = {
     command: 'node',
-    args: [path.join(__dirname, '..', 'dist', 'unified-server.js'), '--stdio'],
+    args: [path.join(__dirname, '..', 'dist', 'todo-server.js'), '--stdio'],
     cwd: process.cwd(),
     env: {
       NODE_ENV: 'production'
@@ -101,7 +101,7 @@ function installCursorConfig() {
 }
 
 function startMCPServer() {
-  const serverPath = path.join(__dirname, '..', 'dist', 'unified-server.js');
+  const serverPath = path.join(__dirname, '..', 'dist', 'todo-server.js');
   
   if (!fs.existsSync(serverPath)) {
     console.error('❌ Server not built. Run "npm run build" first.');
@@ -125,7 +125,7 @@ function startMCPServer() {
 
 function startHTTPServer() {
   const port = getPortFromArgs();
-  const serverPath = path.join(__dirname, '..', 'dist', 'unified-server.js');
+  const serverPath = path.join(__dirname, '..', 'dist', 'todo-server.js');
   
   if (!fs.existsSync(serverPath)) {
     console.error('❌ Server not built. Run "npm run build" first.');

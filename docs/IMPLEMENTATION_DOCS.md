@@ -1,15 +1,15 @@
-# MCP Server Todo Application
+# MCP Todo Server
 
-A multi-node distributed todo application built with the Model Context Protocol (MCP) that provides intelligent task management and prioritization using AI analysis.
+A unified todo management server built with the Model Context Protocol (MCP) that provides intelligent task management with both MCP protocol support and web UI interface.
 
 ## 🚀 Features
 
-- **Multi-node Architecture**: Distributed system with Redis-based state synchronization
+- **Unified Server**: Single server providing both MCP protocol and HTTP API
 - **MCP Protocol Support**: Full Model Context Protocol implementation for AI agent integration
-- **AI-Powered Analysis**: OpenAI integration for intelligent task prioritization
-- **Real-time Synchronization**: Redis pub/sub for distributed state management
-- **High Performance**: In-memory caching with Redis persistence
-- **Docker Ready**: Complete containerization with multi-node setup
+- **Web UI Interface**: Modern web interface for task management
+- **SQLite Storage**: No external dependencies - uses SQLite for data persistence
+- **AI-Powered Analysis**: OpenAI/OpenRouter integration for intelligent task prioritization
+- **Session Management**: Project-based todo organization
 - **Health Monitoring**: Comprehensive health checks and monitoring
 
 ## 🛠️ MCP Tools
@@ -27,21 +27,21 @@ The server exposes the following MCP tools:
 
 ### Core Components
 
-- **MCP Server**: Main server implementing the Model Context Protocol
-- **Todo Storage**: Redis-based storage with in-memory caching
-- **AI Analysis Engine**: OpenAI integration with circuit breaker pattern
-- **State Synchronization**: Redis pub/sub for multi-node coordination
-- **Load Balancer**: Caddy for round-robin distribution
+- **Todo Server**: Main server implementing both MCP protocol and HTTP API
+- **Todo Storage**: SQLite-based storage with no external dependencies
+- **AI Analysis Engine**: OpenAI/OpenRouter integration with circuit breaker pattern
+- **Web Server**: Express-based web interface for task management
+- **Session Management**: Project-based todo organization
 
 ### Technology Stack
 
 - **Language**: TypeScript
 - **Runtime**: Node.js 18+
 - **MCP SDK**: @modelcontextprotocol/sdk
-- **Storage**: Redis 7
-- **AI Provider**: OpenAI API
-- **Load Balancer**: Caddy
-- **Containerization**: Docker + Docker Compose
+- **Storage**: SQLite (better-sqlite3)
+- **Web Framework**: Express.js
+- **AI Provider**: OpenAI API / OpenRouter
+- **Frontend**: Vanilla HTML/CSS/JavaScript
 
 ## 🚀 Quick Start
 

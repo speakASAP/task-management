@@ -57,7 +57,7 @@ if (config.mcpServers['mcp-todo-server']) {
 
 // Get the current working directory (where the server is installed)
 const serverPath = process.cwd();
-const serverExecutable = path.join(serverPath, 'dist', 'unified-server.js');
+const serverExecutable = path.join(serverPath, 'dist', 'todo-server.js');
 
 // Check if server is built
 if (!fs.existsSync(serverExecutable)) {

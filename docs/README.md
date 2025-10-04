@@ -129,7 +129,7 @@ mcp-todo-server --help
 ```text
 mcp-todo-server/
 ├── src/
-│   ├── unified-server.ts      # Main server implementation
+│   ├── todo-server.ts         # Main server implementation
 │   └── web-ui/                # Web interface
 ├── bin/
 │   └── mcp-todo-server.js     # CLI executable
@@ -168,7 +168,7 @@ The installer automatically creates/updates `~/.cursor/mcp.json`:
   "mcpServers": {
     "mcp-todo-server": {
       "command": "node",
-      "args": ["/path/to/mcp-todo-server/dist/unified-server.js", "--stdio"],
+      "args": ["/path/to/mcp-todo-server/dist/todo-server.js", "--stdio"],
       "cwd": "/path/to/project",
       "env": {
         "NODE_ENV": "production"

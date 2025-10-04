@@ -1,17 +1,17 @@
-# MCP Server Todo Application
+# MCP Todo Server
 
-A multi-node distributed todo application built with the Model Context Protocol (MCP) that provides intelligent task management and prioritization using AI analysis.
+A unified todo management server built with the Model Context Protocol (MCP) that provides intelligent task management with both MCP protocol support and web UI interface.
 
 ![Enhanced Todo System](assets/screenshot1.png)
 
 ## 🚀 Features
 
-- **Multi-node Architecture**: Distributed system with Redis-based state synchronization
+- **Unified Server**: Single server providing both MCP protocol and HTTP API
 - **MCP Protocol Support**: Full Model Context Protocol implementation for AI agent integration
+- **Web UI Interface**: Modern web interface for task management
+- **SQLite Storage**: No external dependencies - uses SQLite for data persistence
 - **AI-Powered Analysis**: OpenAI/OpenRouter integration for intelligent task prioritization
-- **Real-time Synchronization**: Redis pub/sub for distributed state management
-- **High Performance**: In-memory caching with Redis persistence
-- **Docker Ready**: Complete containerization with multi-node setup
+- **Session Management**: Project-based todo organization
 - **Health Monitoring**: Comprehensive health checks and monitoring
 
 ## 🛠️ MCP Tools
@@ -29,28 +29,27 @@ The server exposes the following MCP tools:
 
 ### Core Components
 
-- **MCP Server**: Main server implementing the Model Context Protocol
-- **Todo Storage**: Redis-based storage with in-memory caching
+- **Todo Server**: Main server implementing both MCP protocol and HTTP API
+- **Todo Storage**: SQLite-based storage with no external dependencies
 - **AI Analysis Engine**: OpenAI/OpenRouter integration with circuit breaker pattern
-- **State Synchronization**: Redis pub/sub for multi-node coordination
-- **Load Balancer**: Caddy for round-robin distribution
+- **Web Server**: Express-based web interface for task management
+- **Session Management**: Project-based todo organization
 
 ### Technology Stack
 
 - **Language**: TypeScript
 - **Runtime**: Node.js 18+
 - **MCP SDK**: @modelcontextprotocol/sdk
-- **Storage**: Redis 7
+- **Storage**: SQLite (better-sqlite3)
+- **Web Framework**: Express.js
 - **AI Provider**: OpenAI API / OpenRouter (with free models)
-- **Load Balancer**: Caddy
-- **Containerization**: Docker + Docker Compose
+- **Frontend**: Vanilla HTML/CSS/JavaScript
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- Docker and Docker Compose
 - OpenAI API key or OpenRouter account (optional, fallback analysis available)
 
 ### Installation
@@ -59,7 +58,7 @@ The server exposes the following MCP tools:
 
    ```bash
    git clone <repository-url>
-   cd mcp-server
+   cd task-management
    ```
 
 2. **Install dependencies**
@@ -68,59 +67,37 @@ The server exposes the following MCP tools:
    npm install
    ```
 
-3. **Set up environment variables**
+3. **Build the project**
 
    ```bash
-   cp env.example .env
-   # Edit .env with your configuration
+   npm run build
    ```
 
-### 🐳 Docker Deployment (Recommended)
-
-The `.env` file is configured for Docker deployment by default.
-
-1. **Start the complete stack**
+4. **Start the server**
 
    ```bash
-   docker-compose up -d
+   npm start
    ```
 
-2. **Check status**
+The server will start on `http://localhost:3300` with both MCP protocol support and web UI.
 
-   ```bash
-   docker-compose ps
-   ```
+### 🌐 Web Interface
 
-3. **View logs**
+Once the server is running, you can access:
 
-   ```bash
-   docker-compose logs -f
-   ```
+- **Web UI**: `http://localhost:3300` - Modern web interface for task management
+- **Health Check**: `http://localhost:3300/health` - Server health status
+- **MCP Endpoint**: `http://localhost:3300/mcp` - MCP protocol endpoint
 
-### 💻 Local Development
+### 💻 Development Mode
 
-For local development, you need to change the Redis URL:
+For development with auto-reload:
 
-1. **Update .env for local development**
+```bash
+npm run dev
+```
 
-   ```bash
-   # Change REDIS_URL in .env from:
-   REDIS_URL=redis://redis:6379
-   # To:
-   REDIS_URL=redis://localhost:6379
-   ```
-
-2. **Start Redis container**
-
-   ```bash
-   docker run -d --name redis-mcp -p 6379:6379 redis:7-alpine
-   ```
-
-3. **Start the server**
-
-   ```bash
-   npm run dev
-   ```
+This will start the server in development mode with TypeScript compilation and auto-restart on file changes.
 
 ### Environment Configuration
 
@@ -130,14 +107,6 @@ Create a `.env` file with the following variables:
 # Server Configuration
 NODE_ENV=production
 SERVER_PORT=3300
-WEB_PORT=3300
-NODE_1_PORT=3301
-NODE_2_PORT=3302
-NODE_1_ID=node-1
-NODE_2_ID=node-2
-
-# Redis Configuration
-REDIS_URL=redis://localhost:6379
 
 # OpenAI Configuration (supports OpenAI, OpenRouter, and other OpenAI-compatible providers)
 OPENAI_API_KEY=your_openai_api_key_here
@@ -145,67 +114,41 @@ OPENAI_MODEL=gpt-3.5-turbo
 OPENAI_BASE_URL=https://api.openai.com/v1
 
 # Logging
-LOG_LEVEL=DEBUG
+LOG_LEVEL=info
 
 # AI Analysis Configuration
 AI_ANALYSIS_ENABLED=true
 AI_ANALYSIS_CACHE_TTL=300
 AI_ANALYSIS_BATCH_SIZE=10
-
-# Performance Configuration
-REDIS_POOL_SIZE=10
-CACHE_TTL=600
-MAX_CONCURRENT_REQUESTS=100
 ```
 
-## 🔌 Port Configuration
+## 🔌 Server Configuration
 
-### Docker Multi-Node Setup
-
-| Port | Service | Description | Access |
-|------|---------|-------------|---------|
-| **3300** | Caddy Load Balancer | Main entry point for all requests | `http://localhost:3300` |
-| **3301** | MCP Server 1 | Internal server instance (node-1) | Internal only |
-| **3302** | MCP Server 2 | Internal server instance (node-2) | Internal only |
-| **6379** | Redis | Database and pub/sub messaging | Internal only |
-
-### Single Node Setup
+### Unified Server Setup
 
 | Port | Service | Description | Access |
 |------|---------|-------------|---------|
-| **3300** | MCP Server | Direct server access | `http://localhost:3300` |
-| **6379** | Redis | Database and pub/sub messaging | `redis://localhost:6379` |
-
-### Testing Ports
-
-| Port | Service | Description | Usage |
-|------|---------|-------------|-------|
-| **3300** | Live Server Tests | Tests actual running Docker server | `npm run test:live` |
-| **3003** | Integration Tests | Isolated test server instance | `npm test` |
-| **Various** | Unit/E2E Tests | Mocked services for testing | `npm test` |
+| **3300** | Todo Server | Main server with MCP + Web UI | `http://localhost:3300` |
 
 ### Key Endpoints
 
-- **Health Check**: `http://localhost:3300/health`
-- **MCP Endpoint**: `http://localhost:3300/mcp`
-- **Server Info**: `http://localhost:3300/`
+- **Web UI**: `http://localhost:3300` - Modern web interface
+- **Health Check**: `http://localhost:3300/health` - Server health status
+- **MCP Endpoint**: `http://localhost:3300/mcp` - MCP protocol endpoint
 
-### Quick Port Reference
+### Quick Server Reference
 
 ```bash
-# Check what's running on each port
-lsof -i :3300  # Load balancer
-lsof -i :3301  # MCP Server 1
-lsof -i :3302  # MCP Server 2
-lsof -i :6379  # Redis
+# Check if server is running
+lsof -i :3300
 
-# Test specific ports
-curl http://localhost:3300/health  # Test load balancer
-curl http://localhost:3301/health  # Test server 1 directly
-curl http://localhost:3302/health  # Test server 2 directly
+# Test server health
+curl http://localhost:3300/health
 
-# Check Docker container ports
-docker compose ps
+# Test MCP endpoint
+curl -X POST http://localhost:3300/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"method": "tools/list", "params": {}}'
 ```
 
 ## 📡 API Endpoints
@@ -238,25 +181,19 @@ Returns basic server information and status.
 
 ### Local Development
 
-1. **Start Redis**
-
-   ```bash
-   docker run -d -p 6379:6379 redis:7-alpine
-   ```
-
-2. **Install dependencies**
+1. **Install dependencies**
 
    ```bash
    npm install
    ```
 
-3. **Run in development mode**
+2. **Run in development mode**
 
    ```bash
    npm run dev
    ```
 
-4. **Build for production**
+3. **Build for production**
 
    ```bash
    npm run build
@@ -265,70 +202,22 @@ Returns basic server information and status.
 
 ### Testing
 
-**⚠️ Important: Start Docker containers first before running tests!**
-
 ```bash
-# 1. Start the complete Docker stack first
-docker compose up -d
-
-# 2. Wait for all containers to be healthy (about 10-15 seconds)
-docker compose ps
-
-# 3. Run comprehensive end-to-end tests (recommended)
-./comprehensive-test.sh
-
-# 4. Run all tests (unit + integration + live server tests)
+# Run all tests
 npm test
 
-# 5. Run tests with coverage
+# Run tests with coverage
 npm run test:coverage
 
-# 6. Run tests in watch mode
+# Run tests in watch mode
 npm run test:watch
-
-# 7. Run only live server tests (tests actual running server on configured port)
-npm run test:live
 ```
 
 **Test Types:**
 
-- **Live Server Tests**: Test the actual running Docker server on configured port
-- **Integration Tests**: Test MCP server logic with mocked dependencies
 - **Unit Tests**: Test individual components in isolation
+- **Integration Tests**: Test MCP server logic with mocked dependencies
 - **E2E Tests**: Test complete workflows with mocked services
-
-#### Comprehensive Test Suite
-
-The `comprehensive-test.sh` script provides complete end-to-end testing of the MCP server:
-
-- **12 comprehensive tests** covering all functionality
-- **MCP Tools Testing**: All 6 MCP tools (add, list, remove, mark_done, clear, analyze)
-- **AI Analysis Testing**: OpenRouter integration with 10+ todos
-- **Multi-node Simulation**: State synchronization across nodes
-- **Performance Testing**: 20 requests in 1s (50ms avg)
-- **Error Handling**: Invalid inputs and edge cases
-- **State Consistency**: Todo persistence verification
-
-**Prerequisites:**
-
-```bash
-# Start Docker containers first
-docker compose up -d
-
-# Wait for containers to be healthy
-docker compose ps
-```
-
-**Run the comprehensive test suite:**
-
-```bash
-# Run the comprehensive test suite
-./comprehensive-test.sh
-
-# Expected output: 12/12 tests passing ✅
-```
-
-**Note:** The comprehensive test script requires the Docker stack to be running as it tests the actual live server on the configured port.
 
 ## 🤖 AI Analysis
 
@@ -367,18 +256,20 @@ npm run dev
 
 ## 🐳 Docker Deployment
 
-### Single Node
+### Docker Build
 
 ```bash
-# Build and run
+# Build the Docker image
 docker build -t mcp-todo-server .
-docker run -p 3300:3300 -e REDIS_URL=redis://host.docker.internal:6379 mcp-todo-server
+
+# Run the container
+docker run -p 3300:3300 mcp-todo-server
 ```
 
-### Multi-Node Setup
+### Docker Compose
 
 ```bash
-# Start the complete stack
+# Start with Docker Compose
 docker-compose up -d
 
 # Check status
@@ -388,11 +279,11 @@ docker-compose ps
 docker-compose logs -f
 ```
 
-The multi-node setup includes:
+The Docker setup includes:
 
-- 2 MCP server instances (ports 3301, 3302)
-- Redis instance (port 6379)
-- Caddy load balancer (port 3300)
+- Todo server with MCP protocol and web UI (port 3300)
+- SQLite database for data persistence
+- No external dependencies required
 
 ## 📝 API Examples
 
@@ -427,8 +318,11 @@ curl -X POST http://localhost:3300/mcp \
 ### ✅ Completed Features
 
 - **All 6 MCP Tools**: `todo_add`, `todo_list`, `todo_remove`, `todo_mark_done`, `todo_clear`, `todo_analyze`
-- **Multi-node Architecture**: Redis-based state synchronization
+- **Unified Server**: Single server providing both MCP protocol and web UI
+- **SQLite Storage**: No external dependencies, file-based storage
 - **AI Analysis**: OpenAI/OpenRouter integration with intelligent prioritization
+- **Web Interface**: Modern web UI for task management
+- **Session Management**: Project-based todo organization
 - **Health Monitoring**: Comprehensive health checks
 - **Docker Support**: Complete containerization
 - **Testing**: Unit, integration, and E2E tests
@@ -438,9 +332,10 @@ curl -X POST http://localhost:3300/mcp \
 
 - **Production Ready**: Full error handling, logging, and monitoring
 - **AI Integration**: Intelligent task analysis with fallback mechanisms
-- **Distributed System**: Multi-node architecture with Redis synchronization
+- **Unified Architecture**: Single server with both MCP and web interfaces
 - **MCP Compliance**: Full Model Context Protocol implementation
-- **Performance Optimized**: Caching, connection pooling, and async operations
+- **No External Dependencies**: SQLite-based storage, no Redis required
+- **Modern Web UI**: Clean, responsive interface for task management
 
 ## ⏱️ Development Time
 
@@ -476,66 +371,43 @@ The server implements the full MCP protocol and can be integrated with any MCP-c
 
 ### Common Issues
 
-1. **Redis Connection Failed**
-   - Ensure Redis is running and accessible
-   - Check REDIS_URL configuration
+1. **Port Already in Use**
+   - Change SERVER_PORT in environment
+   - Check for conflicting processes: `lsof -i :3300`
 
 2. **AI Analysis Not Working**
    - Verify OPENAI_API_KEY is set
    - Check AI_ANALYSIS_ENABLED setting
 
-3. **Port Already in Use**
-   - Change SERVER_PORT in environment
-   - Check for conflicting processes
+3. **Server Not Starting**
+   - Check if port 3300 is available
+   - Verify all dependencies are installed: `npm install`
 
-4. **Tests Failing with "EADDRINUSE" Error**
-   - **Solution**: Start Docker containers first before running tests
-
-   ```bash
-   docker compose up -d
-   npm test
-   ```
-
-5. **Comprehensive Test Script Hanging**
-   - **Solution**: Ensure Docker stack is running and healthy
-
-   ```bash
-   docker compose ps  # Check all containers are healthy
-   ./comprehensive-test.sh
-   ```
-
-6. **Tests Not Finding Server on Configured Port**
-   - **Solution**: Verify load balancer is running
-
-   ```bash
-   curl http://localhost:${SERVER_PORT:-3300}/health
-   ```
+4. **Database Issues**
+   - SQLite database is created automatically
+   - Check file permissions in the project directory
 
 ### Debug Mode
 
 Enable debug logging:
 
 ```bash
-LOG_LEVEL=DEBUG npm run dev
+LOG_LEVEL=debug npm run dev
 ```
 
 ### Testing Troubleshooting
 
 **If tests fail:**
 
-1. Ensure Docker containers are running: `docker compose ps`
-2. Check server health: `curl http://localhost:3300/health`
-3. Run tests step by step:
+1. Check server health: `curl http://localhost:3300/health`
+2. Run tests step by step:
 
    ```bash
-   # Test live server only
-   npm run test:live
-   
-   # Test all components
+   # Run all tests
    npm test
    
-   # Test comprehensive suite
-   ./comprehensive-test.sh
+   # Run with coverage
+   npm run test:coverage
    ```
 
 ## 📈 Future Enhancements
@@ -552,18 +424,18 @@ LOG_LEVEL=DEBUG npm run dev
 ### ✅ Core Functionality (100% Complete)
 
 - [x] Implement MCP tools: `todo_add(name)`, `todo_list()`, `todo_remove(id)`, `todo_clear()`, `todo_mark_done(id)`, `todo_analyze()`
-- [x] Store todos in Redis with todo status (pending/completed)
+- [x] Store todos in SQLite with todo status (pending/completed)
 - [x] Add AI-powered todo analysis using OpenAI to recommend the highest impact tasks 🤖
-- [x] Expose MCP over Streamable HTTP at `/mcp` endpoint
+- [x] Expose MCP over HTTP at `/mcp` endpoint
 - [x] Provide `/health` endpoint
-- [x] Allow requests for the same session to land on any node (no sticky sessions)
-- [x] Provide Docker Compose with 2 nodes, Redis, and Caddy load balancer
+- [x] Provide web UI interface for task management
+- [x] Session management for different projects
 
 ### ✅ Technical Requirements (100% Complete)
 
 - [x] TypeScript project
-- [x] Redis for state management
-- [x] Caddy for load balancing (round-robin)
+- [x] SQLite for data persistence (no external dependencies)
+- [x] Express.js for web interface
 - [x] OpenAI integration for AI analysis (with OpenRouter support)
 - [x] Docker containerization
 
@@ -571,19 +443,22 @@ LOG_LEVEL=DEBUG npm run dev
 
 - [x] Source code
 - [x] `Dockerfile` for containerization
-- [x] `docker-compose.yml` with multi-node setup
+- [x] `docker-compose.yml` for easy deployment
 - [x] `README.md` with setup instructions and usage examples
+- [x] Web UI interface
 - [x] Time spent on the task: 2 hours
 
 ## 🎉 Summary
 
-This MCP Server Todo Application is a **complete, production-ready implementation** that exceeds all requirements. It features:
+This MCP Todo Server is a **complete, production-ready implementation** that exceeds all requirements. It features:
 
 - **Full MCP Protocol Support** with all 6 required tools
 - **Intelligent AI Analysis** using OpenAI/OpenRouter with fallback mechanisms
-- **Multi-node Distributed Architecture** with Redis synchronization
+- **Unified Architecture** with both MCP protocol and web UI
+- **No External Dependencies** using SQLite for data persistence
+- **Modern Web Interface** for easy task management
 - **Comprehensive Testing** and documentation
 - **Docker Containerization** ready for deployment
-- **Performance Optimized** with caching and connection pooling
+- **Session Management** for project-based organization
 
-The implementation demonstrates advanced software engineering practices including distributed systems, AI integration, and production-ready error handling.
+The implementation demonstrates advanced software engineering practices including AI integration, unified server architecture, and production-ready error handling.

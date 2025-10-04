@@ -45,7 +45,7 @@ class UnifiedMCPServer {
   private config: ServerConfig;
 
   constructor(port?: number) {
-    this.port = port || parseInt(process.env.SERVER_PORT || process.env.PORT || '3300');
+    this.port = port || parseInt(process.env['SERVER_PORT'] || process.env['PORT'] || '3300');
     this.config = this.loadConfig();
     this.logger = new Logger(this.config.logLevel);
     this.initializeDatabase();
@@ -57,18 +57,18 @@ class UnifiedMCPServer {
   private loadConfig(): ServerConfig {
     return {
       port: this.port,
-      nodeId: process.env.NODE_1_ID || process.env.NODE_2_ID || process.env.NODE_ID || 'unified-server',
-      logLevel: (process.env.LOG_LEVEL as any) || 'info',
-      redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-      openaiApiKey: process.env.OPENAI_API_KEY || '',
-      openaiBaseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
-      openaiModel: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
-      aiAnalysisEnabled: process.env.AI_ANALYSIS_ENABLED === 'true',
-      aiAnalysisCacheTtl: parseInt(process.env.AI_ANALYSIS_CACHE_TTL || '300'),
-      aiAnalysisBatchSize: parseInt(process.env.AI_ANALYSIS_BATCH_SIZE || '10'),
-      redisPoolSize: parseInt(process.env.REDIS_POOL_SIZE || '10'),
-      cacheTtl: parseInt(process.env.CACHE_TTL || '600'),
-      maxConcurrentRequests: parseInt(process.env.MAX_CONCURRENT_REQUESTS || '100')
+      nodeId: process.env['NODE_1_ID'] || process.env['NODE_2_ID'] || process.env['NODE_ID'] || 'todo-server',
+      logLevel: (process.env['LOG_LEVEL'] as any) || 'info',
+      redisUrl: process.env['REDIS_URL'] || 'redis://localhost:6379',
+      openaiApiKey: process.env['OPENAI_API_KEY'] || '',
+      openaiBaseUrl: process.env['OPENAI_BASE_URL'] || 'https://api.openai.com/v1',
+      openaiModel: process.env['OPENAI_MODEL'] || 'gpt-3.5-turbo',
+      aiAnalysisEnabled: process.env['AI_ANALYSIS_ENABLED'] === 'true',
+      aiAnalysisCacheTtl: parseInt(process.env['AI_ANALYSIS_CACHE_TTL'] || '300'),
+      aiAnalysisBatchSize: parseInt(process.env['AI_ANALYSIS_BATCH_SIZE'] || '10'),
+      redisPoolSize: parseInt(process.env['REDIS_POOL_SIZE'] || '10'),
+      cacheTtl: parseInt(process.env['CACHE_TTL'] || '600'),
+      maxConcurrentRequests: parseInt(process.env['MAX_CONCURRENT_REQUESTS'] || '100')
     };
   }
 
@@ -236,22 +236,22 @@ class UnifiedMCPServer {
         
         switch (name) {
           case 'todo_add':
-            result = await this.addTodo(args?.name as string, args?.priority as number, args?.tags as string[], args?.detailedInstructions as string);
+            result = await this.addTodo(args?.['name'] as string, args?.['priority'] as number, args?.['tags'] as string[], args?.['detailedInstructions'] as string);
             break;
           case 'todo_list':
-            result = await this.listTodos(args?.status as string);
+            result = await this.listTodos(args?.['status'] as string);
             break;
           case 'todo_mark_done':
-            result = await this.markTodoDone(args?.id as string);
+            result = await this.markTodoDone(args?.['id'] as string);
             break;
           case 'todo_remove':
-            result = await this.removeTodo(args?.id as string);
+            result = await this.removeTodo(args?.['id'] as string);
             break;
           case 'todo_clear':
             result = await this.clearTodos();
             break;
           case 'project_set':
-            result = await this.setProject(args?.path as string, args?.name as string);
+            result = await this.setProject(args?.['path'] as string, args?.['name'] as string);
             break;
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -299,7 +299,7 @@ class UnifiedMCPServer {
     // API endpoints
     this.httpApp.get('/api/todos', async (req, res) => {
       try {
-        const status = req.query.status as string || 'all';
+        const status = req.query['status'] as string || 'all';
         const result = await this.listTodos(status);
         res.json(result);
       } catch (error) {
@@ -415,8 +415,8 @@ class UnifiedMCPServer {
         updatedAt: new Date(now), 
         priority, 
         tags,
-        detailedInstructions,
-        aiGuidance: undefined
+        detailedInstructions: detailedInstructions || '',
+        aiGuidance: ''
       },
       message: 'Todo added successfully'
     };
@@ -652,6 +652,8 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
     // AI analysis should match todos by index
     for (let i = 0; i < todos.length; i++) {
       const todo = todos[i];
+      if (!todo) continue;
+      
       const aiSuggestion = aiAnalysis[i];
       
       if (aiSuggestion) {
@@ -747,7 +749,7 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
     // Start HTTP server
     this.httpApp.listen(this.port, () => {
       console.log(`🚀 MCP Todo Server started`);
-      const baseUrl = process.env.BASE_URL || 'http://localhost';
+      const baseUrl = process.env['BASE_URL'] || 'http://localhost';
       console.log(`📱 Web UI: ${baseUrl}:${this.port}`);
       console.log(`🔧 API: ${baseUrl}:${this.port}/api`);
       console.log(`📋 Health: ${baseUrl}:${this.port}/health`);
@@ -878,22 +880,22 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
       
       switch (name) {
         case 'todo_add':
-          result = await this.addTodo(args?.name as string, args?.priority as number, args?.tags as string[]);
+          result = await this.addTodo(args?.['name'] as string, args?.['priority'] as number, args?.['tags'] as string[]);
           break;
         case 'todo_list':
-          result = await this.listTodos(args?.status as string);
+          result = await this.listTodos(args?.['status'] as string);
           break;
         case 'todo_mark_done':
-          result = await this.markTodoDone(args?.id as string);
+          result = await this.markTodoDone(args?.['id'] as string);
           break;
         case 'todo_remove':
-          result = await this.removeTodo(args?.id as string);
+          result = await this.removeTodo(args?.['id'] as string);
           break;
         case 'todo_clear':
           result = await this.clearTodos();
           break;
         case 'project_set':
-          result = await this.setProject(args?.path as string, args?.name as string);
+          result = await this.setProject(args?.['path'] as string, args?.['name'] as string);
           break;
         default:
           return {
@@ -966,7 +968,7 @@ if (process.argv.includes('--stdio')) {
   server.handleStdio();
 } else {
   // HTTP mode
-  const port = parseInt(process.env.SERVER_PORT || process.env.PORT || '3300');
+  const port = parseInt(process.env['SERVER_PORT'] || process.env['PORT'] || '3300');
   const server = new UnifiedMCPServer(port);
   server.start();
 }
