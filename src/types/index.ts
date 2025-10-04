@@ -10,6 +10,8 @@ export interface Todo {
     tags?: string[];
     analysis?: TodoAnalysis;
     projectId?: string;
+    detailedInstructions?: string;
+    aiGuidance?: string;
 }
 
 export interface TodoAnalysis {
@@ -30,12 +32,14 @@ export interface Project {
 
 export interface TodoCreateInput {
     name: string;
+    detailedInstructions?: string;
 }
 
 export interface TodoUpdateInput {
     id: string;
     name?: string;
     status?: 'pending' | 'completed';
+    detailedInstructions?: string;
 }
 
 export interface TodoListResponse {

@@ -16,6 +16,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            overflow-x: hidden;
         }
         
         .container {
@@ -24,7 +25,7 @@
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
+            overflow: visible;
         }
         
         .header {
@@ -167,6 +168,75 @@
         .todo-priority.high { background: #ff6b6b; }
         .todo-priority.medium { background: #ffa726; }
         .todo-priority.low { background: #66bb6a; }
+        
+        .todo-details {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4facfe;
+        }
+        
+        .detail-section h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .detail-section p {
+            margin: 0;
+            color: #666;
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+        
+        .detail-toggle {
+            cursor: pointer;
+            user-select: none;
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .detail-toggle:hover {
+            color: #4facfe;
+        }
+        
+        .toggle-icon {
+            font-size: 0.8rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .detail-content {
+            max-height: 200px;
+            overflow-y: auto;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+        
+        .detail-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            padding: 0 10px;
+            border: none;
+        }
+        
+        .detail-content.expanded {
+            max-height: 200px;
+            opacity: 1;
+        }
+        
+        .detail-content.expanded .toggle-icon {
+            transform: rotate(180deg);
+        }
         
         .todo-meta {
             display: flex;
@@ -385,6 +455,10 @@
             transition: all 0.3s ease;
         }
         
+        .action-btn.edit {
+            background: #ffa726;
+        }
+        
         .action-btn.complete {
             background: #66bb6a;
         }
@@ -433,7 +507,7 @@
         }
         
         .project-todos.expanded {
-            max-height: 2000px;
+            max-height: none;
             opacity: 1;
             margin-top: 15px;
         }
@@ -523,6 +597,10 @@
                     <label class="form-label">Tags (comma-separated)</label>
                     <input type="text" class="form-input" name="tags" placeholder="urgent, backend, frontend">
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Detailed Instructions (optional)</label>
+                    <textarea class="form-input" name="detailedInstructions" rows="4" placeholder="Enter detailed instructions, technical specifications, requirements, or any additional context for this task..."></textarea>
+                </div>
                 <button type="submit" class="submit-btn">Add Task</button>
             </form>
         </div>
@@ -596,6 +674,54 @@
         </div>
     </div>
     
+    <!-- Edit Task Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Task</h3>
+                <button class="close-btn" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <form id="editTaskForm">
+                <input type="hidden" id="editTaskId" name="id">
+                <div class="form-group">
+                    <label class="form-label">Task Name *</label>
+                    <input type="text" class="form-input" id="editTaskName" name="name" required placeholder="Enter task name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Priority (1-10)</label>
+                    <select class="form-input" id="editTaskPriority" name="priority">
+                        <option value="1">1 - Critical</option>
+                        <option value="2">2 - Very High</option>
+                        <option value="3">3 - High</option>
+                        <option value="4">4 - High</option>
+                        <option value="5">5 - Medium</option>
+                        <option value="6">6 - Medium</option>
+                        <option value="7">7 - Low</option>
+                        <option value="8">8 - Low</option>
+                        <option value="9">9 - Very Low</option>
+                        <option value="10">10 - Lowest</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tags (comma-separated)</label>
+                    <input type="text" class="form-input" id="editTaskTags" name="tags" placeholder="urgent, backend, frontend">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Detailed Instructions</label>
+                    <textarea class="form-input" id="editTaskInstructions" name="detailedInstructions" rows="4" placeholder="Enter detailed instructions, technical specifications, requirements, or any additional context for this task..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select class="form-input" id="editTaskStatus" name="status">
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-btn">Update Task</button>
+            </form>
+        </div>
+    </div>
+    
     <script>
         // API base URL
         const API_BASE = '/api';
@@ -615,6 +741,12 @@
         document.getElementById('projectForm').addEventListener('submit', function(e) {
             e.preventDefault();
             setProject();
+        });
+        
+        // Edit task form handler
+        document.getElementById('editTaskForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            updateTask();
         });
         
         // Load todos from API
@@ -642,7 +774,8 @@
             const taskData = {
                 name: formData.get('name'),
                 priority: parseInt(formData.get('priority')),
-                tags: formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()) : []
+                tags: formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()) : [],
+                detailedInstructions: formData.get('detailedInstructions') || undefined
             };
             
             try {
@@ -824,6 +957,91 @@
             }
         }
         
+        // Edit task
+        async function editTask(taskId) {
+            try {
+                // Get current todos to find the task
+                const response = await fetch(`${API_BASE}/todos`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const task = data.data.todos.find(t => t.id === taskId);
+                    if (task) {
+                        // Populate the edit form
+                        document.getElementById('editTaskId').value = task.id;
+                        document.getElementById('editTaskName').value = task.name;
+                        document.getElementById('editTaskPriority').value = task.priority || 5;
+                        document.getElementById('editTaskTags').value = task.tags ? task.tags.join(', ') : '';
+                        document.getElementById('editTaskInstructions').value = task.detailedInstructions || '';
+                        document.getElementById('editTaskStatus').value = task.status;
+                        
+                        // Show the edit modal
+                        openModal('editModal');
+                    } else {
+                        alert('Task not found');
+                    }
+                } else {
+                    alert('Failed to load task details');
+                }
+            } catch (error) {
+                alert('Error loading task: ' + error.message);
+            }
+        }
+        
+        // Update task
+        async function updateTask() {
+            const form = document.getElementById('editTaskForm');
+            const formData = new FormData(form);
+            const taskId = formData.get('id');
+            
+            const taskData = {
+                name: formData.get('name'),
+                priority: parseInt(formData.get('priority')),
+                tags: formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()) : [],
+                detailedInstructions: formData.get('detailedInstructions') || undefined,
+                status: formData.get('status')
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/todos/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(taskData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    closeModal('editModal');
+                    form.reset();
+                    loadTodos();
+                    alert('Task updated successfully');
+                } else {
+                    alert('Failed to update task: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error updating task: ' + error.message);
+            }
+        }
+        
+        // Toggle detail sections
+        function toggleDetail(elementId) {
+            const element = document.getElementById(elementId);
+            const toggleIcon = element.previousElementSibling.querySelector('.toggle-icon');
+            
+            if (element.classList.contains('collapsed')) {
+                element.classList.remove('collapsed');
+                element.classList.add('expanded');
+                toggleIcon.textContent = '▲';
+            } else {
+                element.classList.remove('expanded');
+                element.classList.add('collapsed');
+                toggleIcon.textContent = '▼';
+            }
+        }
+        
         // Update statistics
         function updateStats(data) {
             document.getElementById('totalTodos').textContent = data.total || 0;
@@ -917,6 +1135,30 @@
                                                 Priority ${todo.priority}
                                             </div>
                                         </div>
+                                        ${todo.detailedInstructions ? `
+                                        <div class="todo-details">
+                                            <div class="detail-section">
+                                                <h4 onclick="toggleDetail('instructions-${todo.id}')" class="detail-toggle">
+                                                    📋 Detailed Instructions: <span class="toggle-icon">▼</span>
+                                                </h4>
+                                                <div id="instructions-${todo.id}" class="detail-content collapsed">
+                                                    <p>${todo.detailedInstructions}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        ` : ''}
+                                        ${todo.aiGuidance ? `
+                                        <div class="todo-details">
+                                            <div class="detail-section">
+                                                <h4 onclick="toggleDetail('guidance-${todo.id}')" class="detail-toggle">
+                                                    🤖 AI Guidance: <span class="toggle-icon">▼</span>
+                                                </h4>
+                                                <div id="guidance-${todo.id}" class="detail-content collapsed">
+                                                    <p>${todo.aiGuidance}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        ` : ''}
                                         <div class="todo-meta">
                                             <div class="todo-tags">
                                                 ${todo.tags.map(tag => `<span class="todo-tag">${tag}</span>`).join('')}
@@ -926,6 +1168,7 @@
                                             </div>
                                         </div>
                                         <div class="todo-actions">
+                                            <button class="action-btn edit" onclick="editTask('${todo.id}')">✏️ Edit</button>
                                             <button class="action-btn complete" onclick="markTaskDone('${todo.id}')">✅ Done</button>
                                             <button class="action-btn delete" onclick="removeTask('${todo.id}')">🗑️ Delete</button>
                                         </div>
@@ -955,10 +1198,10 @@
             }
         }
         
-        // Get priority class
+        // Get priority class (1 = highest priority, 10 = lowest priority)
         function getPriorityClass(priority) {
-            if (priority >= 8) return 'high';
-            if (priority >= 5) return 'medium';
+            if (priority <= 3) return 'high';
+            if (priority <= 6) return 'medium';
             return 'low';
         }
         

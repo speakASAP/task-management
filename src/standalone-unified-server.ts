@@ -439,7 +439,7 @@ class StandaloneUnifiedMCPServer {
 • Completion rate: ${todosForAnalysis.length > 0 ? Math.round((completedTodos.length / todosForAnalysis.length) * 100) : 0}%
 
 ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
-  .sort((a, b) => b.priority - a.priority)
+  .sort((a, b) => a.priority - b.priority)
   .map(todo => `  - [${todo.priority}] ${todo.name}`).join('\n') : '🎉 No pending tasks!'}`;
           
           return {

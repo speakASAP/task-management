@@ -2,6 +2,8 @@
 
 A multi-node distributed todo application built with the Model Context Protocol (MCP) that provides intelligent task management and prioritization using AI analysis.
 
+![Enhanced Todo System](assets/screenshot1.png)
+
 ## 🚀 Features
 
 - **Multi-node Architecture**: Distributed system with Redis-based state synchronization
@@ -332,7 +334,7 @@ docker compose ps
 
 The application includes intelligent task analysis powered by OpenAI/OpenRouter:
 
-- **Priority Scoring**: AI-generated priority scores (1-10)
+- **Priority Scoring**: AI-generated priority scores (1-10, where 1 = highest priority, 10 = lowest priority)
 - **Impact Assessment**: Low/Medium/High impact classification
 - **Reasoning**: Detailed explanations for prioritization decisions
 - **Caching**: Intelligent caching to reduce API calls
@@ -393,6 +395,8 @@ The multi-node setup includes:
 - Caddy load balancer (port 3300)
 
 ## 📝 API Examples
+
+![Todo Example with Detailed Instructions and AI Guidance](assets/screenshot2.png)
 
 ### Adding a Todo
 

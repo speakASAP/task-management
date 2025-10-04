@@ -89,14 +89,14 @@ export class AnalysisEngine {
             let priority = 5; // Default priority
             
             if (todo.status === 'completed') {
-                priority = 1; // Completed todos have lowest priority
+                priority = 10; // Completed todos have lowest priority
             } else {
-                // Pending todos get priority based on age (newer = higher priority)
+                // Pending todos get priority based on age (newer = higher priority = lower number)
                 const ageInHours = (Date.now() - todo.createdAt.getTime()) / (1000 * 60 * 60);
-                priority = Math.max(1, Math.min(10, 10 - Math.floor(ageInHours / 24)));
+                priority = Math.max(1, Math.min(10, 1 + Math.floor(ageInHours / 24)));
             }
 
-            const estimatedImpact = priority >= 8 ? 'high' : priority >= 5 ? 'medium' : 'low';
+            const estimatedImpact = priority <= 3 ? 'high' : priority <= 6 ? 'medium' : 'low';
             
             return {
                 priority,
@@ -108,8 +108,8 @@ export class AnalysisEngine {
             };
         });
 
-        // Sort by priority (highest first)
-        analysis.sort((a, b) => b.priority - a.priority);
+        // Sort by priority (highest first = lowest number first)
+        analysis.sort((a, b) => a.priority - b.priority);
         
         // Update suggested order after sorting
         analysis.forEach((item, index) => {

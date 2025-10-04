@@ -109,14 +109,14 @@ export class OpenAIClient {
 ${todoList}
 
 For each todo, provide:
-- priority: number (1-10, 10 = highest)
+- priority: number (1-10, where 1 = highest priority, 10 = lowest priority)
 - reasoning: string (brief explanation)
 - suggestedOrder: number (1-based ranking)
 - estimatedImpact: "low" | "medium" | "high"
 - tags: string[] (relevant tags)
 
 Return format:
-[{"priority": 10, "reasoning": "Critical security issue", "suggestedOrder": 1, "estimatedImpact": "high", "tags": ["security", "urgent"]}, ...]
+[{"priority": 1, "reasoning": "Critical security issue", "suggestedOrder": 1, "estimatedImpact": "high", "tags": ["security", "urgent"]}, ...]
 
 Consider: urgency and deadline, business value and impact, dependencies on other tasks, efforts needed, and current status.`;
     }

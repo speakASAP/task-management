@@ -109,6 +109,8 @@ class UnifiedMCPServer {
         priority INTEGER DEFAULT 5,
         tags TEXT,
         analysis TEXT,
+        detailedInstructions TEXT,
+        aiGuidance TEXT,
         FOREIGN KEY (projectId) REFERENCES projects (id)
       );
       
@@ -119,6 +121,20 @@ class UnifiedMCPServer {
     // Add analysis column if it doesn't exist (migration)
     try {
       this.db.exec(`ALTER TABLE todos ADD COLUMN analysis TEXT;`);
+    } catch (error) {
+      // Column already exists, ignore error
+    }
+    
+    // Add detailedInstructions column if it doesn't exist (migration)
+    try {
+      this.db.exec(`ALTER TABLE todos ADD COLUMN detailedInstructions TEXT;`);
+    } catch (error) {
+      // Column already exists, ignore error
+    }
+    
+    // Add aiGuidance column if it doesn't exist (migration)
+    try {
+      this.db.exec(`ALTER TABLE todos ADD COLUMN aiGuidance TEXT;`);
     } catch (error) {
       // Column already exists, ignore error
     }
@@ -149,7 +165,8 @@ class UnifiedMCPServer {
               properties: {
                 name: { type: 'string', description: 'Name of the todo item' },
                 priority: { type: 'number', description: 'Priority level (1-10)', minimum: 1, maximum: 10 },
-                tags: { type: 'array', items: { type: 'string' }, description: 'Tags for the todo' }
+                tags: { type: 'array', items: { type: 'string' }, description: 'Tags for the todo' },
+                detailedInstructions: { type: 'string', description: 'Detailed instructions and specifications for the task' }
               },
               required: ['name']
             }
@@ -219,7 +236,7 @@ class UnifiedMCPServer {
         
         switch (name) {
           case 'todo_add':
-            result = await this.addTodo(args?.name as string, args?.priority as number, args?.tags as string[]);
+            result = await this.addTodo(args?.name as string, args?.priority as number, args?.tags as string[], args?.detailedInstructions as string);
             break;
           case 'todo_list':
             result = await this.listTodos(args?.status as string);
@@ -292,8 +309,8 @@ class UnifiedMCPServer {
 
     this.httpApp.post('/api/todos', async (req, res) => {
       try {
-        const { name, priority, tags } = req.body;
-        const result = await this.addTodo(name, priority, tags);
+        const { name, priority, tags, detailedInstructions } = req.body;
+        const result = await this.addTodo(name, priority, tags, detailedInstructions);
         res.json(result);
       } catch (error) {
         res.status(500).json({ error: 'Failed to add todo' });
@@ -306,6 +323,16 @@ class UnifiedMCPServer {
         res.json(result);
       } catch (error) {
         res.status(500).json({ error: 'Failed to mark todo as done' });
+      }
+    });
+
+    this.httpApp.put('/api/todos/:id', async (req, res) => {
+      try {
+        const { name, priority, tags, detailedInstructions, status } = req.body;
+        const result = await this.updateTodo(req.params.id, { name, priority, tags, detailedInstructions, status });
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to update todo' });
       }
     });
 
@@ -367,20 +394,30 @@ class UnifiedMCPServer {
   }
 
   // Database operations
-  private async addTodo(name: string, priority: number = 5, tags: string[] = []): Promise<{ success: boolean; data?: Todo; message: string; error?: string }> {
+  private async addTodo(name: string, priority: number = 5, tags: string[] = [], detailedInstructions?: string): Promise<{ success: boolean; data?: Todo; message: string; error?: string }> {
     const id = uuidv4();
     const now = new Date().toISOString();
     
     const stmt = this.db.prepare(`
-      INSERT INTO todos (id, name, status, createdAt, updatedAt, projectId, priority, tags)
-      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?)
+      INSERT INTO todos (id, name, status, createdAt, updatedAt, projectId, priority, tags, detailedInstructions, aiGuidance)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)
     `);
     
-    stmt.run(id, name, now, now, this.currentProjectId, priority, JSON.stringify(tags));
+    stmt.run(id, name, now, now, this.currentProjectId, priority, JSON.stringify(tags), detailedInstructions || null, null);
     
     return {
       success: true,
-      data: { id, name, status: 'pending', createdAt: new Date(now), updatedAt: new Date(now), priority, tags },
+      data: { 
+        id, 
+        name, 
+        status: 'pending', 
+        createdAt: new Date(now), 
+        updatedAt: new Date(now), 
+        priority, 
+        tags,
+        detailedInstructions,
+        aiGuidance: undefined
+      },
       message: 'Todo added successfully'
     };
   }
@@ -394,7 +431,7 @@ class UnifiedMCPServer {
       params.push(status);
     }
     
-    query += ' ORDER BY priority DESC, createdAt DESC';
+    query += ' ORDER BY priority ASC, createdAt ASC';
     
     const stmt = this.db.prepare(query);
     const todos = stmt.all(...params);
@@ -425,6 +462,50 @@ class UnifiedMCPServer {
     }
     
     return { success: true, message: 'Todo marked as completed' };
+  }
+
+  private async updateTodo(id: string, updates: { name?: string; priority?: number; tags?: string[]; detailedInstructions?: string; status?: string }): Promise<any> {
+    const updateFields = [];
+    const values = [];
+    
+    if (updates.name !== undefined) {
+      updateFields.push('name = ?');
+      values.push(updates.name);
+    }
+    if (updates.priority !== undefined) {
+      updateFields.push('priority = ?');
+      values.push(updates.priority);
+    }
+    if (updates.tags !== undefined) {
+      updateFields.push('tags = ?');
+      values.push(JSON.stringify(updates.tags));
+    }
+    if (updates.detailedInstructions !== undefined) {
+      updateFields.push('detailedInstructions = ?');
+      values.push(updates.detailedInstructions);
+    }
+    if (updates.status !== undefined) {
+      updateFields.push('status = ?');
+      values.push(updates.status);
+    }
+    
+    if (updateFields.length === 0) {
+      return { success: false, error: 'No fields to update' };
+    }
+    
+    updateFields.push('updatedAt = ?');
+    values.push(new Date().toISOString());
+    values.push(id);
+    values.push(this.currentProjectId);
+    
+    const stmt = this.db.prepare(`UPDATE todos SET ${updateFields.join(', ')} WHERE id = ? AND projectId = ?`);
+    const result = stmt.run(...values);
+    
+    if (result.changes === 0) {
+      return { success: false, error: 'Todo not found' };
+    }
+    
+    return { success: true, message: 'Todo updated successfully' };
   }
 
   private async removeTodo(id: string): Promise<any> {
@@ -461,7 +542,9 @@ class UnifiedMCPServer {
         priority: dbTodo.priority || 5,
         tags: dbTodo.tags ? JSON.parse(dbTodo.tags) : [],
         analysis: dbTodo.analysis ? JSON.parse(dbTodo.analysis) : undefined,
-        projectId: dbTodo.projectId
+        projectId: dbTodo.projectId,
+        detailedInstructions: dbTodo.detailedInstructions,
+        aiGuidance: dbTodo.aiGuidance
       }));
       
       if (todos.length === 0) {
@@ -485,6 +568,9 @@ class UnifiedMCPServer {
         
         // Update todos with AI-suggested priorities and tags
         updatedTodos = await this.updateTodosWithAIAnalysis(todos, analysisResult.analysis);
+        
+        // Generate AI guidance for each task
+        await this.generateAIGuidance(updatedTodos);
         
         // Generate formatted analysis text
         const analysis = this.formatAIAnalysis(analysisResult, updatedTodos);
@@ -510,7 +596,7 @@ class UnifiedMCPServer {
 • Completion rate: ${todos.length > 0 ? Math.round((completedTodos.length / todos.length) * 100) : 0}%
 
 ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
-  .sort((a: Todo, b: Todo) => (b.priority || 5) - (a.priority || 5))
+  .sort((a: Todo, b: Todo) => (a.priority || 5) - (b.priority || 5))
   .map((todo: Todo) => `  - [${todo.priority || 5}] ${todo.name}`).join('\n') : '🎉 No pending tasks!'}`;
 
         return { 
@@ -525,6 +611,38 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
     } catch (error) {
       this.logger.error('Analysis failed:', error);
       return { success: false, error: 'Failed to analyze todos' };
+    }
+  }
+
+  private async generateAIGuidance(todos: Todo[]): Promise<void> {
+    if (!this.analysisEngine) return;
+    
+    try {
+      for (const todo of todos) {
+        if (todo.status === 'completed' || todo.aiGuidance) continue;
+        
+        // Generate AI guidance for this specific task
+        const guidance = await this.generateTaskGuidance(todo);
+        
+        // Update the todo with AI guidance
+        const stmt = this.db.prepare('UPDATE todos SET aiGuidance = ? WHERE id = ?');
+        stmt.run(guidance, todo.id);
+      }
+    } catch (error) {
+      this.logger.error('Failed to generate AI guidance:', error);
+    }
+  }
+
+  private async generateTaskGuidance(todo: Todo): Promise<string> {
+    if (!this.analysisEngine) return '';
+    
+    try {
+      // Use the analysis engine to generate guidance
+      const response = await this.analysisEngine.analyzeTodos([todo]);
+      return response.analysis[0]?.reasoning || 'AI guidance not available';
+    } catch (error) {
+      this.logger.error('Failed to generate task guidance:', error);
+      return 'AI guidance generation failed';
     }
   }
 
@@ -576,7 +694,7 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
     if (analysis.length > 0) {
       formatted += `📋 Prioritized Tasks:\n`;
       analysis
-        .sort((a, b) => b.priority - a.priority)
+        .sort((a, b) => a.priority - b.priority)
         .forEach((item, index) => {
           const todo = updatedTodos[index];
           formatted += `${index + 1}. [${item.priority}] ${todo?.name || 'Unknown Task'}\n`;

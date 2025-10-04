@@ -67,7 +67,7 @@ project_set("/path/to/my/project", "My Awesome Project")
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `todo_add` | Add a new todo item | `name` (required), `priority` (1-10), `tags` (array) |
+| `todo_add` | Add a new todo item | `name` (required), `priority` (1-10, where 1=highest), `tags` (array) |
 | `todo_list` | List all todos | `status` (optional: "pending", "completed", "all") |
 | `todo_mark_done` | Mark todo as completed | `id` (required) |
 | `todo_remove` | Remove a todo by ID | `id` (required) |

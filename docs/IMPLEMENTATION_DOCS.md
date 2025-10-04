@@ -219,7 +219,7 @@ npm run test:watch
 
 The application includes intelligent task analysis powered by OpenAI:
 
-- **Priority Scoring**: AI-generated priority scores (1-10)
+- **Priority Scoring**: AI-generated priority scores (1-10, where 1 = highest priority, 10 = lowest priority)
 - **Impact Assessment**: Low/Medium/High impact classification
 - **Reasoning**: Detailed explanations for prioritization decisions
 - **Caching**: Intelligent caching to reduce API calls
