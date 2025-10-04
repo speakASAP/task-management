@@ -10,6 +10,10 @@
  * - Auto-setup and configuration
  */
 
+// Load environment variables
+import { config } from 'dotenv';
+config();
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import express from 'express';
@@ -18,28 +22,17 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 // @ts-ignore - better-sqlite3 types
 import Database from 'better-sqlite3';
+import { AnalysisEngine } from './ai/analysis-engine.js';
+import { RedisClient } from './redis/client.js';
+import { Logger } from './utils/logger.js';
+import { ServerConfig, TodoAnalysisResponse, Todo, Project } from './types/index.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-interface Todo {
-  id: string;
-  name: string;
-  status: 'pending' | 'completed';
-  createdAt: string;
-  updatedAt: string;
-  projectId?: string;
-  priority?: number;
-  tags?: string[];
-}
-
-interface Project {
-  id: string;
-  name: string;
-  path: string;
-  createdAt: string;
-}
+// Interfaces are used in the class methods below
+// Using Todo and Project types from types/index.js
 
 class UnifiedMCPServer {
   private mcpServer!: Server;
@@ -47,12 +40,50 @@ class UnifiedMCPServer {
   private db: Database.Database;
   private currentProjectId: string | null = null;
   private port: number;
+  private analysisEngine: AnalysisEngine | null = null;
+  private logger: Logger;
+  private config: ServerConfig;
 
-  constructor(port: number = 3000) {
-    this.port = port;
+  constructor(port?: number) {
+    this.port = port || parseInt(process.env.SERVER_PORT || process.env.PORT || '3300');
+    this.config = this.loadConfig();
+    this.logger = new Logger(this.config.logLevel);
     this.initializeDatabase();
+    this.initializeAI();
     this.setupMCPServer();
     this.setupHTTPServer();
+  }
+
+  private loadConfig(): ServerConfig {
+    return {
+      port: this.port,
+      nodeId: process.env.NODE_1_ID || process.env.NODE_2_ID || process.env.NODE_ID || 'unified-server',
+      logLevel: (process.env.LOG_LEVEL as any) || 'info',
+      redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+      openaiApiKey: process.env.OPENAI_API_KEY || '',
+      openaiBaseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+      openaiModel: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+      aiAnalysisEnabled: process.env.AI_ANALYSIS_ENABLED === 'true',
+      aiAnalysisCacheTtl: parseInt(process.env.AI_ANALYSIS_CACHE_TTL || '300'),
+      aiAnalysisBatchSize: parseInt(process.env.AI_ANALYSIS_BATCH_SIZE || '10'),
+      redisPoolSize: parseInt(process.env.REDIS_POOL_SIZE || '10'),
+      cacheTtl: parseInt(process.env.CACHE_TTL || '600'),
+      maxConcurrentRequests: parseInt(process.env.MAX_CONCURRENT_REQUESTS || '100')
+    };
+  }
+
+  private initializeAI(): void {
+    try {
+      if (this.config.aiAnalysisEnabled && this.config.openaiApiKey) {
+        const redisClient = new RedisClient(this.config.redisUrl);
+        this.analysisEngine = new AnalysisEngine(redisClient, this.config);
+        this.logger.info('AI Analysis Engine initialized successfully');
+      } else {
+        this.logger.info('AI Analysis Engine disabled - no API key or disabled in config');
+      }
+    } catch (error) {
+      this.logger.warn('Failed to initialize AI Analysis Engine:', error);
+    }
   }
 
   private initializeDatabase(): void {
@@ -77,12 +108,20 @@ class UnifiedMCPServer {
         projectId TEXT,
         priority INTEGER DEFAULT 5,
         tags TEXT,
+        analysis TEXT,
         FOREIGN KEY (projectId) REFERENCES projects (id)
       );
       
       CREATE INDEX IF NOT EXISTS idx_todos_project ON todos(projectId);
       CREATE INDEX IF NOT EXISTS idx_todos_status ON todos(status);
     `);
+    
+    // Add analysis column if it doesn't exist (migration)
+    try {
+      this.db.exec(`ALTER TABLE todos ADD COLUMN analysis TEXT;`);
+    } catch (error) {
+      // Column already exists, ignore error
+    }
   }
 
   private setupMCPServer(): void {
@@ -288,15 +327,47 @@ class UnifiedMCPServer {
       }
     });
 
+    // Analyze todos endpoint
+    this.httpApp.post('/api/todos/analyze', async (_req, res) => {
+      try {
+        const result = await this.analyzeTodos();
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to analyze todos' });
+      }
+    });
+
+    // Project endpoint
+    this.httpApp.post('/api/project', async (req, res) => {
+      try {
+        const { path, name } = req.body;
+        const result = await this.setProject(path, name);
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to set project' });
+      }
+    });
+
+    // Get all projects
+    this.httpApp.get('/api/projects', async (_req, res) => {
+      try {
+        const stmt = this.db.prepare('SELECT * FROM projects ORDER BY createdAt DESC');
+        const projects = stmt.all();
+        res.json({ success: true, data: projects, message: 'Projects retrieved successfully' });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch projects' });
+      }
+    });
+
     // Serve web UI
     this.httpApp.use(express.static(path.join(__dirname, 'web-ui')));
-    this.httpApp.get('/', (req, res) => {
+    this.httpApp.get('/', (_req, res) => {
       res.sendFile(path.join(__dirname, 'web-ui', 'index.html'));
     });
   }
 
   // Database operations
-  private async addTodo(name: string, priority: number = 5, tags: string[] = []): Promise<any> {
+  private async addTodo(name: string, priority: number = 5, tags: string[] = []): Promise<{ success: boolean; data?: Todo; message: string; error?: string }> {
     const id = uuidv4();
     const now = new Date().toISOString();
     
@@ -309,17 +380,17 @@ class UnifiedMCPServer {
     
     return {
       success: true,
-      data: { id, name, status: 'pending', createdAt: now, updatedAt: now, priority, tags },
+      data: { id, name, status: 'pending', createdAt: new Date(now), updatedAt: new Date(now), priority, tags },
       message: 'Todo added successfully'
     };
   }
 
   private async listTodos(status: string = 'all'): Promise<any> {
-    let query = 'SELECT * FROM todos WHERE projectId = ?';
-    const params: any[] = [this.currentProjectId];
+    let query = 'SELECT * FROM todos';
+    const params: any[] = [];
     
     if (status !== 'all') {
-      query += ' AND status = ?';
+      query += ' WHERE status = ?';
       params.push(status);
     }
     
@@ -374,7 +445,154 @@ class UnifiedMCPServer {
     return { success: true, message: `Cleared ${result.changes} todos` };
   }
 
-  private async setProject(path: string, name?: string): Promise<any> {
+  private async analyzeTodos(): Promise<any> {
+    try {
+      // Get all todos for current project
+      const stmt = this.db.prepare('SELECT * FROM todos WHERE projectId = ? ORDER BY priority DESC, createdAt DESC');
+      const dbTodos = stmt.all(this.currentProjectId);
+      
+      // Convert database results to proper Todo objects
+      const todos = dbTodos.map((dbTodo: any) => ({
+        id: dbTodo.id,
+        name: dbTodo.name,
+        status: dbTodo.status,
+        createdAt: new Date(dbTodo.createdAt),
+        updatedAt: new Date(dbTodo.updatedAt),
+        priority: dbTodo.priority || 5,
+        tags: dbTodo.tags ? JSON.parse(dbTodo.tags) : [],
+        analysis: dbTodo.analysis ? JSON.parse(dbTodo.analysis) : undefined,
+        projectId: dbTodo.projectId
+      }));
+      
+      if (todos.length === 0) {
+        return { 
+          success: true, 
+          data: { 
+            analysis: '📊 No todos found in current project',
+            updatedTodos: []
+          }, 
+          message: 'No todos to analyze' 
+        };
+      }
+
+      let analysisResult: TodoAnalysisResponse;
+      let updatedTodos: Todo[] = [];
+
+      if (this.analysisEngine) {
+        // Use AI analysis engine
+        this.logger.info(`Performing AI analysis for ${todos.length} todos`);
+        analysisResult = await this.analysisEngine.analyzeTodos(todos);
+        
+        // Update todos with AI-suggested priorities and tags
+        updatedTodos = await this.updateTodosWithAIAnalysis(todos, analysisResult.analysis);
+        
+        // Generate formatted analysis text
+        const analysis = this.formatAIAnalysis(analysisResult, updatedTodos);
+        
+        return { 
+          success: true, 
+          data: { 
+            analysis,
+            updatedTodos,
+            aiAnalysis: analysisResult
+          }, 
+          message: 'AI analysis completed successfully' 
+        };
+      } else {
+        // Fallback to simple analysis
+        const pendingTodos = todos.filter((todo: Todo) => todo.status === 'pending');
+        const completedTodos = todos.filter((todo: Todo) => todo.status === 'completed');
+        
+        const analysis = `📊 Todo Analysis (Project: ${this.currentProjectId}):
+• Total todos: ${todos.length}
+• Pending: ${pendingTodos.length}
+• Completed: ${completedTodos.length}
+• Completion rate: ${todos.length > 0 ? Math.round((completedTodos.length / todos.length) * 100) : 0}%
+
+${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
+  .sort((a: Todo, b: Todo) => (b.priority || 5) - (a.priority || 5))
+  .map((todo: Todo) => `  - [${todo.priority || 5}] ${todo.name}`).join('\n') : '🎉 No pending tasks!'}`;
+
+        return { 
+          success: true, 
+          data: { 
+            analysis,
+            updatedTodos: []
+          }, 
+          message: 'Simple analysis completed (AI disabled)' 
+        };
+      }
+    } catch (error) {
+      this.logger.error('Analysis failed:', error);
+      return { success: false, error: 'Failed to analyze todos' };
+    }
+  }
+
+  private async updateTodosWithAIAnalysis(todos: Todo[], aiAnalysis: any[]): Promise<Todo[]> {
+    const updatedTodos: Todo[] = [];
+    
+    // AI analysis should match todos by index
+    for (let i = 0; i < todos.length; i++) {
+      const todo = todos[i];
+      const aiSuggestion = aiAnalysis[i];
+      
+      if (aiSuggestion) {
+        // Update priority if AI suggests a different one
+        if (aiSuggestion.priority && aiSuggestion.priority !== todo.priority) {
+          const updateStmt = this.db.prepare('UPDATE todos SET priority = ?, updatedAt = ? WHERE id = ?');
+          updateStmt.run(aiSuggestion.priority, new Date().toISOString(), todo.id);
+          todo.priority = aiSuggestion.priority;
+        }
+        
+        // Update tags if AI suggests new ones
+        if (aiSuggestion.tags && aiSuggestion.tags.length > 0) {
+          const newTags = [...new Set([...(todo.tags || []), ...aiSuggestion.tags])];
+          const updateStmt = this.db.prepare('UPDATE todos SET tags = ?, updatedAt = ? WHERE id = ?');
+          updateStmt.run(JSON.stringify(newTags), new Date().toISOString(), todo.id);
+          todo.tags = newTags;
+        }
+        
+        // Store AI analysis
+        const analysisStmt = this.db.prepare('UPDATE todos SET analysis = ?, updatedAt = ? WHERE id = ?');
+        analysisStmt.run(JSON.stringify(aiSuggestion), new Date().toISOString(), todo.id);
+        todo.analysis = aiSuggestion;
+      }
+      
+      updatedTodos.push(todo);
+    }
+    
+    return updatedTodos;
+  }
+
+  private formatAIAnalysis(analysisResult: TodoAnalysisResponse, updatedTodos: Todo[]): string {
+    const { analysis, summary } = analysisResult;
+    
+    let formatted = `🤖 AI Analysis Results:\n`;
+    formatted += `• Total analyzed: ${summary.totalAnalyzed}\n`;
+    formatted += `• High impact: ${summary.highImpact}\n`;
+    formatted += `• Medium impact: ${summary.mediumImpact}\n`;
+    formatted += `• Low impact: ${summary.lowImpact}\n\n`;
+    
+    if (analysis.length > 0) {
+      formatted += `📋 Prioritized Tasks:\n`;
+      analysis
+        .sort((a, b) => b.priority - a.priority)
+        .forEach((item, index) => {
+          const todo = updatedTodos[index];
+          formatted += `${index + 1}. [${item.priority}] ${todo?.name || 'Unknown Task'}\n`;
+          formatted += `   💡 ${item.reasoning}\n`;
+          formatted += `   🎯 Impact: ${item.estimatedImpact}\n`;
+          if (item.tags && item.tags.length > 0) {
+            formatted += `   🏷️  Tags: ${item.tags.join(', ')}\n`;
+          }
+          formatted += `\n`;
+        });
+    }
+    
+    return formatted;
+  }
+
+  private async setProject(path: string, name?: string): Promise<{ success: boolean; data?: Project; message: string; error?: string }> {
     // Check if project exists
     let stmt = this.db.prepare('SELECT * FROM projects WHERE path = ?');
     let project = stmt.get(path);
@@ -398,8 +616,8 @@ class UnifiedMCPServer {
   }
 
   private getTotalTodos(): number {
-    const stmt = this.db.prepare('SELECT COUNT(*) as count FROM todos WHERE projectId = ?');
-    const result = stmt.get(this.currentProjectId);
+    const stmt = this.db.prepare('SELECT COUNT(*) as count FROM todos');
+    const result = stmt.get();
     return result?.count || 0;
   }
 
@@ -411,9 +629,10 @@ class UnifiedMCPServer {
     // Start HTTP server
     this.httpApp.listen(this.port, () => {
       console.log(`🚀 MCP Todo Server started`);
-      console.log(`📱 Web UI: http://localhost:${this.port}`);
-      console.log(`🔧 API: http://localhost:${this.port}/api`);
-      console.log(`📋 Health: http://localhost:${this.port}/health`);
+      const baseUrl = process.env.BASE_URL || 'http://localhost';
+      console.log(`📱 Web UI: ${baseUrl}:${this.port}`);
+      console.log(`🔧 API: ${baseUrl}:${this.port}/api`);
+      console.log(`📋 Health: ${baseUrl}:${this.port}/health`);
       console.log(`📁 Project: ${cwd}`);
     });
   }
@@ -629,7 +848,7 @@ if (process.argv.includes('--stdio')) {
   server.handleStdio();
 } else {
   // HTTP mode
-  const port = parseInt(process.env.PORT || '3000');
+  const port = parseInt(process.env.SERVER_PORT || process.env.PORT || '3300');
   const server = new UnifiedMCPServer(port);
   server.start();
 }

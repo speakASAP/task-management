@@ -4,6 +4,10 @@ echo "🚀 MCP Server Todo Application - Comprehensive Test Suite"
 echo "========================================================"
 echo ""
 
+# Configuration
+SERVER_PORT=${SERVER_PORT:-3300}
+BASE_URL="${BASE_URL:-http://localhost}:${SERVER_PORT}"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -85,7 +89,7 @@ test_mcp_tool() {
     
     echo -e "${CYAN}🔧 Testing MCP Tool: $description${NC}"
     
-    response=$(curl -s -X POST http://localhost:3000/mcp \
+    response=$(curl -s -X POST $BASE_URL/mcp \
         -H "Content-Type: application/json" \
         -d "{\"method\": \"tools/call\", \"params\": {\"name\": \"$tool_name\", \"arguments\": $arguments}}")
     
@@ -104,7 +108,7 @@ test_mcp_tool() {
 check_server_health() {
     echo -e "${CYAN}🏥 Checking Server Health...${NC}"
     
-    health_response=$(curl -s http://localhost:3000/health)
+    health_response=$(curl -s $BASE_URL/health)
     
     if echo "$health_response" | jq -e '.status == "healthy"' > /dev/null; then
         echo -e "${GREEN}✅ Server is healthy${NC}"
@@ -141,7 +145,7 @@ echo "====================================="
 
 # Clear todos first (but don't count as a test)
 echo -e "${CYAN}🧹 Clearing existing todos...${NC}"
-curl -s -X POST http://localhost:3000/mcp \
+curl -s -X POST $BASE_URL/mcp \
     -H "Content-Type: application/json" \
     -d '{"method": "tools/call", "params": {"name": "todo_clear", "arguments": {}}}' > /dev/null
 echo -e "${GREEN}✅ Cleared existing todos${NC}"
@@ -171,7 +175,7 @@ echo ""
 
 # Test todo_list
 echo -e "${CYAN}📋 Testing todo_list...${NC}"
-list_response=$(curl -s -X POST http://localhost:3000/mcp \
+list_response=$(curl -s -X POST $BASE_URL/mcp \
     -H "Content-Type: application/json" \
     -d '{"method": "tools/call", "params": {"name": "todo_list", "arguments": {}}}')
 
@@ -202,7 +206,7 @@ echo ""
 echo -e "${CYAN}🔍 Testing status filtering...${NC}"
 
 # Test pending todos
-pending_response=$(curl -s -X POST http://localhost:3000/mcp \
+pending_response=$(curl -s -X POST $BASE_URL/mcp \
     -H "Content-Type: application/json" \
     -d '{"method": "tools/call", "params": {"name": "todo_list", "arguments": {"status": "pending"}}}')
 
@@ -214,7 +218,7 @@ else
 fi
 
 # Test completed todos
-completed_response=$(curl -s -X POST http://localhost:3000/mcp \
+completed_response=$(curl -s -X POST $BASE_URL/mcp \
     -H "Content-Type: application/json" \
     -d '{"method": "tools/call", "params": {"name": "todo_list", "arguments": {"status": "completed"}}}')
 
@@ -232,7 +236,7 @@ echo -e "${PURPLE}📋 Phase 3: AI Analysis Testing${NC}"
 echo "==============================="
 
 echo -e "${CYAN}🧠 Testing AI Analysis with 10 todos...${NC}"
-analysis_response=$(curl -s -X POST http://localhost:3000/mcp \
+analysis_response=$(curl -s -X POST $BASE_URL/mcp \
     -H "Content-Type: application/json" \
     -d '{"method": "tools/call", "params": {"name": "todo_analyze", "arguments": {}}}')
 
@@ -285,7 +289,7 @@ echo -e "${CYAN}⚡ Running Performance Tests...${NC}"
 # Test multiple rapid requests
 start_time=$(date +%s)
 for i in {1..20}; do
-    curl -s -X POST http://localhost:3000/mcp \
+    curl -s -X POST $BASE_URL/mcp \
         -H "Content-Type: application/json" \
         -d '{"method": "tools/call", "params": {"name": "todo_list", "arguments": {}}}' > /dev/null
 done
@@ -301,7 +305,7 @@ test_with_counter "Performance test (20 requests)" "[ $duration -lt 10 ]" "true"
 echo -e "${CYAN}🔄 Testing Concurrent Requests...${NC}"
 for i in {1..5}; do
     (
-        curl -s -X POST http://localhost:3000/mcp \
+        curl -s -X POST $BASE_URL/mcp \
             -H "Content-Type: application/json" \
             -d '{"method": "tools/call", "params": {"name": "todo_list", "arguments": {}}}' > /dev/null
     ) &
@@ -321,7 +325,7 @@ echo -e "${CYAN}🚨 Testing Error Scenarios...${NC}"
 
 # Test invalid todo ID
 echo -e "${BLUE}Testing invalid todo ID...${NC}"
-invalid_response=$(curl -s -X POST http://localhost:3000/mcp \
+invalid_response=$(curl -s -X POST $BASE_URL/mcp \
     -H "Content-Type: application/json" \
     -d '{"method": "tools/call", "params": {"name": "todo_mark_done", "arguments": {"id": "invalid-id"}}}')
 
@@ -335,7 +339,7 @@ fi
 
 # Test valid JSON
 echo -e "${BLUE}Testing valid JSON...${NC}"
-valid_response=$(curl -s -X POST http://localhost:3000/mcp \
+valid_response=$(curl -s -X POST $BASE_URL/mcp \
     -H "Content-Type: application/json" \
     -d '{"method": "tools/call", "params": {"name": "todo_add", "arguments": {"name": "Test JSON"}}}')
 
@@ -379,7 +383,7 @@ done
 
 # Test state consistency
 echo -e "${CYAN}🔍 Testing State Consistency...${NC}"
-final_list=$(curl -s -X POST http://localhost:3000/mcp \
+final_list=$(curl -s -X POST $BASE_URL/mcp \
     -H "Content-Type: application/json" \
     -d '{"method": "tools/call", "params": {"name": "todo_list", "arguments": {}}}')
 
@@ -407,7 +411,7 @@ echo "========================="
 
 # Clear all todos (not counted as test)
 echo -e "${CYAN}🧹 Clearing all todos for cleanup...${NC}"
-curl -s -X POST http://localhost:3000/mcp \
+curl -s -X POST $BASE_URL/mcp \
     -H "Content-Type: application/json" \
     -d '{"method": "tools/call", "params": {"name": "todo_clear", "arguments": {}}}' > /dev/null
 echo -e "${GREEN}✅ All todos cleared${NC}"

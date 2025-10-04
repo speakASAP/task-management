@@ -43,12 +43,12 @@ mcp-todo-server --install-cursor
 mcp-todo-server
 
 # Or start on specific port
-mcp-todo-server --port 3000
+mcp-todo-server --port 3300
 ```
 
 ### Access Web UI
 
-Open your browser to: **<http://localhost:3000>**
+Open your browser to: **<http://localhost:${SERVER_PORT:-3300}>**
 
 ## 🎯 Usage
 
@@ -105,7 +105,7 @@ mcp-todo-server --stdio
 mcp-todo-server --install-cursor
 
 # Start on specific port
-mcp-todo-server --port 3000
+mcp-todo-server --port 3300
 
 # Show help
 mcp-todo-server --help
@@ -155,7 +155,7 @@ mcp-todo-server/
 ### Environment Variables
 
 ```bash
-PORT=3000                    # HTTP server port
+PORT=3300                    # HTTP server port
 NODE_ENV=production          # Environment mode
 ```
 
@@ -195,15 +195,15 @@ The installer automatically creates/updates `~/.cursor/mcp.json`:
 
 ```bash
 # Get all tasks
-curl http://localhost:3000/api/todos
+curl http://localhost:${SERVER_PORT:-3300}/api/todos
 
 # Add a task
-curl -X POST http://localhost:3000/api/todos \
+curl -X POST http://localhost:${SERVER_PORT:-3300}/api/todos \
   -H "Content-Type: application/json" \
   -d '{"name": "Fix bug", "priority": 7, "tags": ["urgent"]}'
 
 # Mark task complete
-curl -X PUT http://localhost:3000/api/todos/task-id/done
+curl -X PUT http://localhost:${SERVER_PORT:-3300}/api/todos/task-id/done
 ```
 
 ## 🚀 Development
@@ -272,10 +272,10 @@ npm test               # Run tests
 
 ```bash
 # Check if port is available
-lsof -i :3000
+lsof -i :3300
 
 # Try different port
-mcp-todo-server --port 3001
+mcp-todo-server --port ${NODE_1_PORT:-3301}
 ```
 
 **Cursor integration not working:**

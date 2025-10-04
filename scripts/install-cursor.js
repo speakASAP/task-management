@@ -95,7 +95,7 @@ console.log('');
 console.log('Next steps:');
 console.log('1. 🔄 Restart Cursor IDE');
 console.log('2. 🚀 Start the server: npm start');
-console.log('3. 🌐 Open web UI: http://localhost:3000');
+console.log('3. 🌐 Open web UI: ' + (process.env.BASE_URL || 'http://localhost') + ':' + (process.env.SERVER_PORT || process.env.PORT || '3300'));
 console.log('4. 💬 Use in Cursor chat:');
 console.log('');
 console.log('   Available commands:');

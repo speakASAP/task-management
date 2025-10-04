@@ -40,8 +40,8 @@ export class MCPServer {
 
     private loadConfig(): ServerConfig {
         return {
-            port: parseInt(process.env.SERVER_PORT || '3000'),
-            nodeId: process.env.NODE_ID || 'node-1',
+            port: parseInt(process.env.SERVER_PORT || process.env.PORT || '3300'),
+            nodeId: this.determineNodeId(),
             redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
             openaiApiKey: process.env.OPENAI_API_KEY || '',
             openaiModel: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
@@ -54,6 +54,24 @@ export class MCPServer {
             cacheTtl: parseInt(process.env.CACHE_TTL || '600'),
             maxConcurrentRequests: parseInt(process.env.MAX_CONCURRENT_REQUESTS || '100')
         };
+    }
+
+    private determineNodeId(): string {
+        // Check for specific node IDs first (for multi-node deployments)
+        if (process.env.NODE_1_ID) {
+            return process.env.NODE_1_ID;
+        }
+        if (process.env.NODE_2_ID) {
+            return process.env.NODE_2_ID;
+        }
+        
+        // Fallback to generic NODE_ID (for single-node deployments)
+        if (process.env.NODE_ID) {
+            return process.env.NODE_ID;
+        }
+        
+        // Default fallback
+        return 'node-1';
     }
 
     private setupExpress(): void {
@@ -441,8 +459,9 @@ export class MCPServer {
             this.app.listen(this.config.port, () => {
                 this.logger.info(`MCP Todo Server started on port ${this.config.port}`);
                 this.logger.info(`Node ID: ${this.config.nodeId}`);
-                this.logger.info(`Health check: http://localhost:${this.config.port}/health`);
-                this.logger.info(`MCP endpoint: http://localhost:${this.config.port}/mcp`);
+                const baseUrl = process.env.BASE_URL || 'http://localhost';
+                this.logger.info(`Health check: ${baseUrl}:${this.config.port}/health`);
+                this.logger.info(`MCP endpoint: ${baseUrl}:${this.config.port}/mcp`);
             });
 
         } catch (error) {

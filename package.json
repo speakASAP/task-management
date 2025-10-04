@@ -8,7 +8,8 @@
     },
     "scripts": {
         "dev": "npx -y tsx src/main.ts",
-        "build": "npx tsc",
+        "build": "npx tsc && npm run copy-web-ui",
+        "copy-web-ui": "mkdir -p dist/web-ui && cp -r src/web-ui/* dist/web-ui/",
         "start": "node dist/main.js",
         "test": "jest",
         "test:watch": "jest --watch",
@@ -61,6 +62,7 @@
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.18.1",
+        "better-sqlite3": "^12.4.1",
         "cors": "^2.8.5",
         "dotenv": "^17.2.3",
         "express": "^4.21.2",

@@ -4,8 +4,8 @@
 process.env.NODE_ENV = 'test';
 process.env.REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'test-key';
-process.env.SERVER_PORT = '3001';
-process.env.NODE_ID = 'test-node';
+process.env.SERVER_PORT = process.env.NODE_1_PORT || '3301';
+process.env.NODE_1_ID = 'test-node';
 
 // Global test timeout
 jest.setTimeout(10000);

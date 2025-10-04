@@ -104,3 +104,4 @@ test-results/
 
 # MCP client configuration (if contains sensitive data)
 mcp.json
+mcp-todo.db

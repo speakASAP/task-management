@@ -28,7 +28,7 @@ Usage:
   mcp-todo-server                    # Start HTTP server with web UI
   mcp-todo-server --stdio           # Start MCP server for Cursor IDE
   mcp-todo-server --install-cursor  # Install Cursor configuration
-  mcp-todo-server --port 3000       # Start on specific port
+  mcp-todo-server --port 3300       # Start on specific port
   mcp-todo-server --help            # Show this help
 
 Features:
@@ -39,9 +39,9 @@ Features:
   ✅ Priority and tagging system
   ✅ Easy installation and setup
 
-Web UI: http://localhost:3000
-API: http://localhost:3000/api
-Health: http://localhost:3000/health
+Web UI: ${process.env.BASE_URL || 'http://localhost'}:${process.env.SERVER_PORT || '3300'}
+API: ${process.env.BASE_URL || 'http://localhost'}:${process.env.SERVER_PORT || '3300'}/api
+Health: ${process.env.BASE_URL || 'http://localhost'}:${process.env.SERVER_PORT || '3300'}/health
 `);
   process.exit(0);
 }
@@ -156,5 +156,5 @@ function getPortFromArgs() {
   if (portIndex !== -1 && args[portIndex + 1]) {
     return parseInt(args[portIndex + 1]);
   }
-  return process.env.PORT ? parseInt(process.env.PORT) : 3000;
+  return parseInt(process.env.SERVER_PORT || process.env.PORT || '3300');
 }

@@ -69,7 +69,7 @@ npm start
 # or
 mcp-todo-server
 
-# Access web UI at http://localhost:3000
+# Access web UI at http://localhost:3300
 ```
 
 ### **3. Configure Cursor**
@@ -175,7 +175,7 @@ project_set("/path/to/project", "My Project")
    ```bash
    npm run build
    npm start
-   # Open http://localhost:3000
+   # Open http://localhost:3300
    ```
 
 2. **Install in Cursor**

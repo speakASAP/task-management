@@ -43,7 +43,7 @@ describe('TodoStorage', () => {
         MockedRedisClient.mockImplementation(() => mockRedis);
 
         config = {
-            port: 3000,
+            port: parseInt(process.env.SERVER_PORT || process.env.PORT || '3300'),
             nodeId: 'test-node',
             redisUrl: 'redis://localhost:6379',
             openaiApiKey: 'test-key',

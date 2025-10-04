@@ -48,7 +48,7 @@ describe('MCP Server Integration Tests', () => {
         process.env.REDIS_URL = 'redis://localhost:6379';
         process.env.OPENAI_API_KEY = 'test-key';
         process.env.SERVER_PORT = '3003';
-        process.env.NODE_ID = 'test-node';
+        process.env.NODE_1_ID = 'test-node';
 
         server = new MCPServer();
         await server.start();

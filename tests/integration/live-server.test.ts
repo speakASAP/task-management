@@ -1,8 +1,8 @@
-// Integration tests for live MCP Server running on port 3000
+// Integration tests for live MCP Server running on configured port
 import request from 'supertest';
 
 describe('Live MCP Server Integration Tests', () => {
-    const baseUrl = 'http://localhost:3000';
+    const baseUrl = `${process.env.BASE_URL || 'http://localhost'}:${process.env.SERVER_PORT || process.env.PORT || '3300'}`;
 
     describe('Health Endpoint', () => {
         it('should return health status from load balancer', async () => {

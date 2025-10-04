@@ -7,7 +7,9 @@ export interface Todo {
     createdAt: Date;
     updatedAt: Date;
     priority?: number;
+    tags?: string[];
     analysis?: TodoAnalysis;
+    projectId?: string;
 }
 
 export interface TodoAnalysis {
@@ -17,6 +19,13 @@ export interface TodoAnalysis {
     estimatedImpact: 'low' | 'medium' | 'high';
     tags: string[];
     createdAt: Date;
+}
+
+export interface Project {
+    id: string;
+    name: string;
+    path: string;
+    createdAt: string;
 }
 
 export interface TodoCreateInput {

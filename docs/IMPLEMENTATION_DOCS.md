@@ -87,8 +87,15 @@ Create a `.env` file with the following variables:
 ```env
 # Server Configuration
 NODE_ENV=production
-SERVER_PORT=3000
-NODE_ID=node-1
+SERVER_PORT=3300
+NODE_1_PORT=3301
+NODE_2_PORT=3302
+NODE_1_ID=node-1
+NODE_2_ID=node-2
+
+# Base URL Configuration
+BASE_URL=http://localhost
+MCP_SERVER_URL=http://localhost:3300
 
 # Redis Configuration
 REDIS_URL=redis://redis:6379
@@ -118,7 +125,7 @@ MAX_CONCURRENT_REQUESTS=100
 ```bash
 # Build and run
 docker build -t mcp-todo-server .
-docker run -p 3000:3000 -e REDIS_URL=redis://host.docker.internal:6379 mcp-todo-server
+docker run -p 3300:3300 -e REDIS_URL=redis://host.docker.internal:6379 mcp-todo-server
 ```
 
 ### Multi-Node Setup
@@ -136,9 +143,9 @@ docker-compose logs -f
 
 The multi-node setup includes:
 
-- 2 MCP server instances (ports 3001, 3002)
+- 2 MCP server instances (ports 3301, 3302)
 - Redis instance (port 6379)
-- Caddy load balancer (port 3000)
+- Caddy load balancer (port 3300)
 
 ## 📡 API Endpoints
 
@@ -255,7 +262,7 @@ The multi-node architecture ensures consistent state across all instances:
 ### VS Code Integration
 
 1. Install MCP extension
-2. Configure server endpoint: `http://localhost:3000/mcp`
+2. Configure server endpoint: `http://localhost:3300/mcp`
 3. Use MCP tools in your editor
 
 ### Cursor Integration
@@ -296,7 +303,7 @@ The server implements the full MCP protocol and can be integrated with any MCP-c
 ### Adding a Todo
 
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3300/mcp \
   -H "Content-Type: application/json" \
   -d '{"method": "tools/call", "params": {"name": "todo_add", "arguments": {"name": "Complete project documentation"}}}'
 ```
@@ -304,7 +311,7 @@ curl -X POST http://localhost:3000/mcp \
 ### Listing Todos
 
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3300/mcp \
   -H "Content-Type: application/json" \
   -d '{"method": "tools/call", "params": {"name": "todo_list", "arguments": {}}}'
 ```
@@ -312,7 +319,7 @@ curl -X POST http://localhost:3000/mcp \
 ### AI Analysis
 
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3300/mcp \
   -H "Content-Type: application/json" \
   -d '{"method": "tools/call", "params": {"name": "todo_analyze", "arguments": {}}}'
 ```

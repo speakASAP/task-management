@@ -2,12 +2,54 @@
 /**
  * Web Server for MCP Todo Tasks
  * 
- * Simple web interface to view all tasks
+ * Production-ready web interface with real MCP server integration
  */
 
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { createServer } from 'http';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+// Simple logger for web server
+class WebLogger {
+  private logLevel: string;
+
+  constructor(logLevel: string = 'info') {
+    this.logLevel = logLevel;
+  }
+
+  private shouldLog(level: string): boolean {
+    const levels = ['error', 'warn', 'info', 'debug'];
+    return levels.indexOf(level) <= levels.indexOf(this.logLevel);
+  }
+
+  error(message: string, ...args: any[]): void {
+    if (this.shouldLog('error')) {
+      console.error(`[ERROR] ${message}`, ...args);
+    }
+  }
+
+  warn(message: string, ...args: any[]): void {
+    if (this.shouldLog('warn')) {
+      console.warn(`[WARN] ${message}`, ...args);
+    }
+  }
+
+  info(message: string, ...args: any[]): void {
+    if (this.shouldLog('info')) {
+      console.log(`[INFO] ${message}`, ...args);
+    }
+  }
+
+  debug(message: string, ...args: any[]): void {
+    if (this.shouldLog('debug')) {
+      console.log(`[DEBUG] ${message}`, ...args);
+    }
+  }
+}
 
 interface Todo {
   id: string;
@@ -30,10 +72,14 @@ interface Project {
 class WebServer {
   private port: number;
   private dataDir: string;
+  private mcpServerUrl: string;
+  private logger: WebLogger;
 
-  constructor(port: number = 3000) {
-    this.port = port;
+  constructor(port?: number) {
+    this.port = port || parseInt(process.env.SERVER_PORT || process.env.PORT || '3300');
     this.dataDir = join(process.cwd(), '.mcp-todo-data');
+    this.mcpServerUrl = process.env.MCP_SERVER_URL || `${process.env.BASE_URL || 'http://localhost'}:${this.port}`;
+    this.logger = new WebLogger(process.env.LOG_LEVEL || 'info');
   }
 
   private loadData(): { todos: Todo[], projects: Map<string, Project> } {
@@ -47,7 +93,7 @@ class WebServer {
         const todosData = JSON.parse(readFileSync(todosFile, 'utf8'));
         Object.values(todosData).forEach(todo => todos.push(todo as Todo));
       } catch (error) {
-        console.error('[ERROR] Failed to load todos:', error);
+        this.logger.error('Failed to load todos:', error);
       }
     }
 
@@ -60,7 +106,7 @@ class WebServer {
           projects.set(id, project as Project);
         });
       } catch (error) {
-        console.error('[ERROR] Failed to load projects:', error);
+        this.logger.error('Failed to load projects:', error);
       }
     }
 
@@ -794,6 +840,8 @@ class WebServer {
             callMCPServer('todo_add', taskData).then(() => {
                 closeModal('addModal');
                 location.reload();
+            }).catch(error => {
+                alert('Error adding task: ' + error.message);
             });
         }
         
@@ -809,6 +857,8 @@ class WebServer {
             callMCPServer('project_set', projectData).then(() => {
                 closeModal('projectModal');
                 location.reload();
+            }).catch(error => {
+                alert('Error setting project: ' + error.message);
             });
         }
         
@@ -867,7 +917,9 @@ class WebServer {
             
             // This would call the MCP server in a real implementation
             callMCPServer('todo_analyze', {}).then(result => {
-                container.innerHTML = '<pre>' + result + '</pre>';
+                container.innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            }).catch(error => {
+                container.innerHTML = '<p>Error loading analysis: ' + error.message + '</p>';
             });
         }
         
@@ -875,6 +927,8 @@ class WebServer {
         function markTaskDone(taskId) {
             callMCPServer('todo_mark_done', { id: taskId }).then(() => {
                 location.reload();
+            }).catch(error => {
+                alert('Error marking task as done: ' + error.message);
             });
         }
         
@@ -891,6 +945,8 @@ class WebServer {
             if (confirm('Are you sure you want to remove this task?')) {
                 callMCPServer('todo_remove', { id: taskId }).then(() => {
                     location.reload();
+                }).catch(error => {
+                    alert('Error removing task: ' + error.message);
                 });
             }
         }
@@ -908,18 +964,47 @@ class WebServer {
             if (confirm('Are you sure you want to clear ALL tasks? This cannot be undone!')) {
                 callMCPServer('todo_clear', {}).then(() => {
                     location.reload();
+                }).catch(error => {
+                    alert('Error clearing tasks: ' + error.message);
                 });
             }
         }
         
-        // Call MCP server (simplified - in real implementation this would be a proper API call)
-        function callMCPServer(tool, params) {
-            return new Promise((resolve, reject) => {
-                // For demo purposes, we'll just show an alert
-                // In a real implementation, this would make an HTTP request to the MCP server
-                alert('MCP Tool: ' + tool + '\\nParams: ' + JSON.stringify(params, null, 2) + '\\n\\nIn a real implementation, this would call the MCP server API.');
-                resolve('Success');
-            });
+        // Call MCP server with real HTTP requests
+        async function callMCPServer(tool, params) {
+            try {
+                const mcpUrl = '${this.mcpServerUrl}/mcp';
+                const response = await fetch(mcpUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: Date.now(),
+                        method: 'tools/call',
+                        params: {
+                            name: tool,
+                            arguments: params
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error.message || 'MCP server error');
+                }
+
+                return result.result;
+            } catch (error) {
+                console.error('MCP server call failed:', error);
+                throw error;
+            }
         }
     </script>
 </body>
@@ -927,6 +1012,22 @@ class WebServer {
   }
 
   private handleRequest(req: any, res: any): void {
+    // Health check endpoint
+    if (req.method === 'GET' && req.url === '/health') {
+      const health = {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        port: this.port,
+        mcpServerUrl: this.mcpServerUrl,
+        uptime: process.uptime()
+      };
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(health, null, 2));
+      return;
+    }
+
+    // Main web interface
     if (req.method === 'GET' && req.url === '/') {
       try {
         const { todos, projects } = this.loadData();
@@ -938,7 +1039,7 @@ class WebServer {
         });
         res.end(html);
       } catch (error) {
-        console.error('[ERROR] Failed to generate HTML:', error);
+        this.logger.error('Failed to generate HTML:', error);
         res.writeHead(500, { 'Content-Type': 'text/plain' });
         res.end('Internal Server Error');
       }
@@ -954,22 +1055,23 @@ class WebServer {
     });
 
     server.listen(this.port, () => {
-      console.log(`🌐 Web server running at http://localhost:${this.port}`);
-      console.log(`📋 View your tasks in the browser!`);
-      console.log(`🔄 Auto-refreshes every 30 seconds`);
+      this.logger.info(`🌐 Web server running at ${process.env.BASE_URL || 'http://localhost'}:${this.port}`);
+      this.logger.info(`📋 View your tasks in the browser!`);
+      this.logger.info(`🔄 Auto-refreshes every 30 seconds`);
+      this.logger.info(`🔗 MCP Server URL: ${this.mcpServerUrl}`);
     });
 
     server.on('error', (error: any) => {
       if (error.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${this.port} is already in use`);
-        console.error(`   Try a different port or stop the other service`);
+        this.logger.error(`❌ Port ${this.port} is already in use`);
+        this.logger.error(`   Try a different port or stop the other service`);
       } else {
-        console.error('[ERROR] Server error:', error);
+        this.logger.error('Server error:', error);
       }
     });
   }
 }
 
 // Start the web server
-const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+const port = parseInt(process.env.SERVER_PORT || process.env.PORT || '3300');
 new WebServer(port).start();

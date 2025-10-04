@@ -127,8 +127,12 @@ Create a `.env` file with the following variables:
 ```env
 # Server Configuration
 NODE_ENV=production
-SERVER_PORT=3000
-NODE_ID=node-1
+SERVER_PORT=3300
+WEB_PORT=3300
+NODE_1_PORT=3301
+NODE_2_PORT=3302
+NODE_1_ID=node-1
+NODE_2_ID=node-2
 
 # Redis Configuration
 REDIS_URL=redis://localhost:6379
@@ -158,45 +162,45 @@ MAX_CONCURRENT_REQUESTS=100
 
 | Port | Service | Description | Access |
 |------|---------|-------------|---------|
-| **3000** | Caddy Load Balancer | Main entry point for all requests | `http://localhost:3000` |
-| **3001** | MCP Server 1 | Internal server instance (node-1) | Internal only |
-| **3002** | MCP Server 2 | Internal server instance (node-2) | Internal only |
+| **3300** | Caddy Load Balancer | Main entry point for all requests | `http://localhost:3300` |
+| **3301** | MCP Server 1 | Internal server instance (node-1) | Internal only |
+| **3302** | MCP Server 2 | Internal server instance (node-2) | Internal only |
 | **6379** | Redis | Database and pub/sub messaging | Internal only |
 
 ### Single Node Setup
 
 | Port | Service | Description | Access |
 |------|---------|-------------|---------|
-| **3000** | MCP Server | Direct server access | `http://localhost:3000` |
+| **3300** | MCP Server | Direct server access | `http://localhost:3300` |
 | **6379** | Redis | Database and pub/sub messaging | `redis://localhost:6379` |
 
 ### Testing Ports
 
 | Port | Service | Description | Usage |
 |------|---------|-------------|-------|
-| **3000** | Live Server Tests | Tests actual running Docker server | `npm run test:live` |
+| **3300** | Live Server Tests | Tests actual running Docker server | `npm run test:live` |
 | **3003** | Integration Tests | Isolated test server instance | `npm test` |
 | **Various** | Unit/E2E Tests | Mocked services for testing | `npm test` |
 
 ### Key Endpoints
 
-- **Health Check**: `http://localhost:3000/health`
-- **MCP Endpoint**: `http://localhost:3000/mcp`
-- **Server Info**: `http://localhost:3000/`
+- **Health Check**: `http://localhost:3300/health`
+- **MCP Endpoint**: `http://localhost:3300/mcp`
+- **Server Info**: `http://localhost:3300/`
 
 ### Quick Port Reference
 
 ```bash
 # Check what's running on each port
-lsof -i :3000  # Load balancer
-lsof -i :3001  # MCP Server 1
-lsof -i :3002  # MCP Server 2
+lsof -i :3300  # Load balancer
+lsof -i :3301  # MCP Server 1
+lsof -i :3302  # MCP Server 2
 lsof -i :6379  # Redis
 
 # Test specific ports
-curl http://localhost:3000/health  # Test load balancer
-curl http://localhost:3001/health  # Test server 1 directly
-curl http://localhost:3002/health  # Test server 2 directly
+curl http://localhost:3300/health  # Test load balancer
+curl http://localhost:3301/health  # Test server 1 directly
+curl http://localhost:3302/health  # Test server 2 directly
 
 # Check Docker container ports
 docker compose ps
@@ -280,13 +284,13 @@ npm run test:coverage
 # 6. Run tests in watch mode
 npm run test:watch
 
-# 7. Run only live server tests (tests actual running server on port 3000)
+# 7. Run only live server tests (tests actual running server on configured port)
 npm run test:live
 ```
 
 **Test Types:**
 
-- **Live Server Tests**: Test the actual running Docker server on port 3000
+- **Live Server Tests**: Test the actual running Docker server on configured port
 - **Integration Tests**: Test MCP server logic with mocked dependencies
 - **Unit Tests**: Test individual components in isolation
 - **E2E Tests**: Test complete workflows with mocked services
@@ -322,7 +326,7 @@ docker compose ps
 # Expected output: 12/12 tests passing ✅
 ```
 
-**Note:** The comprehensive test script requires the Docker stack to be running as it tests the actual live server on port 3000.
+**Note:** The comprehensive test script requires the Docker stack to be running as it tests the actual live server on the configured port.
 
 ## 🤖 AI Analysis
 
@@ -366,7 +370,7 @@ npm run dev
 ```bash
 # Build and run
 docker build -t mcp-todo-server .
-docker run -p 3000:3000 -e REDIS_URL=redis://host.docker.internal:6379 mcp-todo-server
+docker run -p 3300:3300 -e REDIS_URL=redis://host.docker.internal:6379 mcp-todo-server
 ```
 
 ### Multi-Node Setup
@@ -384,16 +388,16 @@ docker-compose logs -f
 
 The multi-node setup includes:
 
-- 2 MCP server instances (ports 3001, 3002)
+- 2 MCP server instances (ports 3301, 3302)
 - Redis instance (port 6379)
-- Caddy load balancer (port 3000)
+- Caddy load balancer (port 3300)
 
 ## 📝 API Examples
 
 ### Adding a Todo
 
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3300/mcp \
   -H "Content-Type: application/json" \
   -d '{"method": "tools/call", "params": {"name": "todo_add", "arguments": {"name": "Complete project documentation"}}}'
 ```
@@ -401,7 +405,7 @@ curl -X POST http://localhost:3000/mcp \
 ### Listing Todos
 
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3300/mcp \
   -H "Content-Type: application/json" \
   -d '{"method": "tools/call", "params": {"name": "todo_list", "arguments": {}}}'
 ```
@@ -409,7 +413,7 @@ curl -X POST http://localhost:3000/mcp \
 ### AI Analysis
 
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3300/mcp \
   -H "Content-Type: application/json" \
   -d '{"method": "tools/call", "params": {"name": "todo_analyze", "arguments": {}}}'
 ```
@@ -451,7 +455,7 @@ curl -X POST http://localhost:3000/mcp \
 ### VS Code Integration
 
 1. Install MCP extension
-2. Configure server endpoint: `http://localhost:3000/mcp`
+2. Configure server endpoint: `http://localhost:3300/mcp`
 3. Use MCP tools in your editor
 
 ### Cursor Integration
@@ -496,11 +500,11 @@ The server implements the full MCP protocol and can be integrated with any MCP-c
    ./comprehensive-test.sh
    ```
 
-6. **Tests Not Finding Server on Port 3000**
+6. **Tests Not Finding Server on Configured Port**
    - **Solution**: Verify load balancer is running
 
    ```bash
-   curl http://localhost:3000/health
+   curl http://localhost:${SERVER_PORT:-3300}/health
    ```
 
 ### Debug Mode
@@ -516,7 +520,7 @@ LOG_LEVEL=DEBUG npm run dev
 **If tests fail:**
 
 1. Ensure Docker containers are running: `docker compose ps`
-2. Check server health: `curl http://localhost:3000/health`
+2. Check server health: `curl http://localhost:3300/health`
 3. Run tests step by step:
 
    ```bash
