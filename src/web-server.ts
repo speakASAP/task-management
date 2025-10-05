@@ -74,12 +74,26 @@ class WebServer {
   private dataDir: string;
   private mcpServerUrl: string;
   private logger: WebLogger;
+  private currentProjectId: string | null = null;
 
   constructor(port?: number) {
-    this.port = port || parseInt(process.env.SERVER_PORT || process.env.PORT || '3300');
+    this.port = port || parseInt(process.env['SERVER_PORT'] || process.env['PORT'] || '3300');
     this.dataDir = join(process.cwd(), '.mcp-todo-data');
-    this.mcpServerUrl = process.env.MCP_SERVER_URL || `${process.env.BASE_URL || 'http://localhost'}:${this.port}`;
-    this.logger = new WebLogger(process.env.LOG_LEVEL || 'info');
+    this.mcpServerUrl = process.env['MCP_SERVER_URL'] || `${process.env['BASE_URL'] || 'http://localhost'}:${this.port}`;
+    this.logger = new WebLogger(process.env['LOG_LEVEL'] || 'info');
+  }
+
+  private async updateCurrentProjectContext(): Promise<void> {
+    try {
+      const response = await fetch(`${this.mcpServerUrl}/health`);
+      if (response.ok) {
+        const health = await response.json();
+        this.currentProjectId = health.projectId || null;
+      }
+    } catch (error) {
+      this.logger.warn('Failed to fetch current project context:', error);
+      this.currentProjectId = null;
+    }
   }
 
   private loadData(): { todos: Todo[], projects: Map<string, Project> } {
@@ -114,6 +128,7 @@ class WebServer {
   }
 
   private generateHTML(todos: Todo[], projects: Map<string, Project>): string {
+    const currentProject = this.currentProjectId ? projects.get(this.currentProjectId) : null;
     const projectGroups = new Map<string, Todo[]>();
     
     // Group todos by project
@@ -568,6 +583,39 @@ class WebServer {
             opacity: 0.8;
         }
         
+        .readonly-indicator {
+            padding: 5px 10px;
+            background: #f5f5f5;
+            color: #666;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-style: italic;
+            border: 1px solid #ddd;
+        }
+        
+        .project-context {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .project-indicator {
+            display: block;
+            font-size: 0.9rem;
+            color: #1976d2;
+            font-weight: 500;
+        }
+        
+        .project-path {
+            display: block;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 2px;
+            font-family: monospace;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 margin: 10px;
@@ -594,6 +642,16 @@ class WebServer {
         <div class="header">
             <h1>📋 MCP Todo Tasks</h1>
             <p>Your personal task management dashboard</p>
+            ${currentProject ? `
+                <div class="project-context">
+                    <span class="project-indicator">📍 Active Project: <strong>${currentProject.name}</strong></span>
+                    <span class="project-path">${currentProject.path}</span>
+                </div>
+            ` : `
+                <div class="project-context">
+                    <span class="project-indicator">⚠️ No active project context</span>
+                </div>
+            `}
         </div>
         
         <div class="stats">
@@ -663,8 +721,12 @@ class WebServer {
                                         </div>
                                     </div>
                                     <div class="todo-actions">
-                                        <button class="action-btn complete" onclick="markTaskDone('${todo.id}')">✅ Done</button>
-                                        <button class="action-btn delete" onclick="removeTask('${todo.id}')">🗑️ Delete</button>
+                                        ${todo.projectId === this.currentProjectId ? `
+                                            <button class="action-btn complete" onclick="markTaskDone('${todo.id}')">✅ Done</button>
+                                            <button class="action-btn delete" onclick="removeTask('${todo.id}')">🗑️ Delete</button>
+                                        ` : `
+                                            <span class="readonly-indicator">👁️ Read-only (other project)</span>
+                                        `}
                                     </div>
                                 </div>
                             `).join('')}
@@ -1011,7 +1073,7 @@ class WebServer {
 </html>`;
   }
 
-  private handleRequest(req: any, res: any): void {
+  private async handleRequest(req: any, res: any): Promise<void> {
     // Health check endpoint
     if (req.method === 'GET' && req.url === '/health') {
       const health = {
@@ -1031,6 +1093,7 @@ class WebServer {
     if (req.method === 'GET' && req.url === '/') {
       try {
         const { todos, projects } = this.loadData();
+        await this.updateCurrentProjectContext();
         const html = this.generateHTML(todos, projects);
         
         res.writeHead(200, {
@@ -1050,12 +1113,12 @@ class WebServer {
   }
 
   public start(): void {
-    const server = createServer((req, res) => {
-      this.handleRequest(req, res);
+    const server = createServer(async (req, res) => {
+      await this.handleRequest(req, res);
     });
 
     server.listen(this.port, () => {
-      this.logger.info(`🌐 Web server running at ${process.env.BASE_URL || 'http://localhost'}:${this.port}`);
+      this.logger.info(`🌐 Web server running at ${process.env['BASE_URL'] || 'http://localhost'}:${this.port}`);
       this.logger.info(`📋 View your tasks in the browser!`);
       this.logger.info(`🔄 Auto-refreshes every 30 seconds`);
       this.logger.info(`🔗 MCP Server URL: ${this.mcpServerUrl}`);
@@ -1073,5 +1136,5 @@ class WebServer {
 }
 
 // Start the web server
-const port = parseInt(process.env.SERVER_PORT || process.env.PORT || '3300');
+const port = parseInt(process.env['SERVER_PORT'] || process.env['PORT'] || '3300');
 new WebServer(port).start();

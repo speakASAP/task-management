@@ -16,6 +16,15 @@
     "dev": "npx tsx src/todo-server.ts",
     "mcp": "node dist/todo-server.js --stdio",
     "install-cursor": "node scripts/install-cursor.js",
+    "set-project": "node scripts/set-current-project.js",
+    "start-with-project": "node scripts/start-with-project.js",
+    "detect-workspace": "node scripts/cursor-workspace-detector.js",
+    "detect-workspace-sh": "./scripts/detect-workspace.sh",
+    "mcp-client": "node scripts/universal-mcp-client.js",
+    "set-workspace": "node scripts/universal-mcp-client.js set-workspace",
+    "list-todos": "node scripts/universal-mcp-client.js list-todos",
+    "setup": "node scripts/setup-and-start.js",
+    "setup-and-start": "node scripts/setup-and-start.js",
     "test": "jest",
     "test:watch": "jest --watch"
   },
@@ -28,7 +37,7 @@
     "productivity",
     "ai"
   ],
-  "author": "MCP Todo Server Team",
+  "author": "MCP Todo Server",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.1",
@@ -58,10 +67,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/mcp-todo-server.git"
+    "url": "https://github.com/speakASAP/task-management.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/mcp-todo-server/issues"
+    "url": "https://github.com/speakASAP/task-management/issues"
   },
-  "homepage": "https://github.com/your-username/mcp-todo-server#readme"
+  "homepage": "https://github.com/speakASAP/task-management#readme"
 }

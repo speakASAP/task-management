@@ -18,7 +18,7 @@ This guide helps you integrate the MCP Todo Server into Cursor IDE for seamless 
 1. **Clone the repository**
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/speakASAP/task-management.git
    cd task-management
    ```
 

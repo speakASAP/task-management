@@ -123,15 +123,15 @@ export class TodoStorage {
                 
                 if (Object.keys(todoData).length > 0) {
                     const todo: Todo = {
-                        id: todoData.id,
-                        name: todoData.name,
-                        status: todoData.status as TodoStatus,
-                        createdAt: new Date(todoData.createdAt),
-                        updatedAt: new Date(todoData.updatedAt)
+                        id: todoData['id'] || '',
+                        name: todoData['name'] || '',
+                        status: (todoData['status'] as TodoStatus) || 'pending',
+                        createdAt: new Date(todoData['createdAt'] || new Date()),
+                        updatedAt: new Date(todoData['updatedAt'] || new Date())
                     };
 
-                    if (todoData.priority) {
-                        todo.priority = parseInt(todoData.priority);
+                    if (todoData['priority']) {
+                        todo.priority = parseInt(todoData['priority']);
                     }
 
                     if (status === 'all' || todo.status === status) {
@@ -234,15 +234,15 @@ export class TodoStorage {
             // Get updated todo
             const todoData = await this.redis.hGetAll(todoKey);
             const todo: Todo = {
-                id: todoData.id,
-                name: todoData.name,
+                id: todoData['id'] || '',
+                name: todoData['name'] || '',
                 status: 'completed',
-                createdAt: new Date(todoData.createdAt),
-                updatedAt: new Date(todoData.updatedAt)
+                createdAt: new Date(todoData['createdAt'] || new Date()),
+                updatedAt: new Date(todoData['updatedAt'] || new Date())
             };
 
-            if (todoData.priority) {
-                todo.priority = parseInt(todoData.priority);
+            if (todoData['priority']) {
+                todo.priority = parseInt(todoData['priority']);
             }
 
             this.logger.info(`Todo marked as done: ${id}`);

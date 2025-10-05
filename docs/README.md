@@ -1,6 +1,6 @@
 # 🚀 MCP Todo Server
 
-**Unified Task Management for Cursor IDE with Web UI**
+## Unified Task Management for Cursor IDE with Web UI
 
 A production-ready MCP (Model Context Protocol) server that provides intelligent task management for Cursor IDE, featuring both MCP protocol support and a modern web interface. No Docker required - just install and go!
 
@@ -212,8 +212,8 @@ curl -X PUT http://localhost:${SERVER_PORT:-3300}/api/todos/task-id/done
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/mcp-todo-server.git
-cd mcp-todo-server
+git clone https://github.com/speakASAP/task-management.git
+cd task-management
 
 # Install dependencies
 npm install
@@ -245,9 +245,9 @@ npm test               # Run tests
 - **Code Reviews** - Track review tasks and follow-ups
 - **Documentation** - Manage writing and update tasks
 
-### For Teams
+### For Multiple Projects
 
-- **Shared Task Lists** - Use same project directory for shared tasks
+- **Project Organization** - Organize tasks by project
 - **Progress Tracking** - Monitor completion rates and productivity
 - **Priority Management** - Focus on high-priority items first
 
@@ -307,7 +307,7 @@ DEBUG=mcp-todo-server:* mcp-todo-server
 ## 📈 Roadmap
 
 - [ ] **AI Integration** - Smart task prioritization
-- [ ] **Team Collaboration** - Multi-user support
+- [ ] **Multi-User Support** - Share tasks across users
 - [ ] **Export/Import** - Backup and restore tasks
 - [ ] **Mobile App** - React Native companion
 - [ ] **Integrations** - GitHub, Jira, Trello sync
@@ -333,6 +333,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-**Made with ❤️ for the Cursor community**
-
-[GitHub](https://github.com/your-username/mcp-todo-server) • [Issues](https://github.com/your-username/mcp-todo-server/issues) • [Discussions](https://github.com/your-username/mcp-todo-server/discussions)
+[GitHub](https://github.com/speakASAP/task-management.git) • [Issues](https://github.com/speakASAP/task-management/issues)

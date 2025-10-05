@@ -679,6 +679,50 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         
+        .readonly-indicator {
+            padding: 8px 12px;
+            background: #f5f5f5;
+            color: #666;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-style: italic;
+            border: 1px solid #ddd;
+            margin: 2px;
+            display: inline-block;
+        }
+        
+        .project-context {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            border-left: 4px solid rgba(255, 255, 255, 0.8);
+        }
+        
+        .project-indicator {
+            display: block;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+        
+        .project-path {
+            display: block;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 2px;
+            font-family: monospace;
+        }
+        
+        .loading-spinner {
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         .project-header {
             cursor: pointer;
             user-select: none;
@@ -734,6 +778,10 @@
         <div class="header">
             <h1>🚀 MCP Todo Tasks</h1>
             <p>Manage your tasks with AI-powered insights</p>
+            <div id="project-context" class="project-context" style="display: none;">
+                <span class="project-indicator">📍 Active Project: <strong id="current-project-name">Loading...</strong></span>
+                <span class="project-path" id="current-project-path">Loading...</span>
+            </div>
         </div>
         
         <div class="stats">
@@ -1109,29 +1157,52 @@
             );
         }
         
+        // Global flag to prevent multiple simultaneous requests
+        let isAnalyzing = false;
+        
         // AI Analyze tasks
         async function analyzeTasks() {
-            try {
-                const response = await fetch(`${API_BASE}/todos/analyze`, {
-                    method: 'POST'
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Show detailed analysis in a modal
-                    showAnalysisModal(data.data.analysis, data.data.updatedTodos);
-                    
-                    // Refresh todos to show updated priorities and tags
-                    if (data.data.updatedTodos && data.data.updatedTodos.length > 0) {
-                        loadTodos();
-                    }
-                } else {
-                    alert('Failed to analyze tasks: ' + data.error);
-                }
-            } catch (error) {
-                alert('Error analyzing tasks: ' + error.message);
+            // Prevent multiple simultaneous requests
+            if (isAnalyzing) {
+                return;
             }
+            
+            // Show loading modal immediately
+            showAnalysisLoadingModal();
+            
+            // Set flag to prevent multiple requests
+            isAnalyzing = true;
+            
+            // Small delay to ensure modal is rendered before making request
+            setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/todos/analyze`, {
+                        method: 'POST'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Close loading modal and show results
+                        closeAnalysisLoadingModal();
+                        showAnalysisModal(data.data.analysis, data.data.updatedTodos);
+                        
+                        // Refresh todos to show updated priorities and tags
+                        if (data.data.updatedTodos && data.data.updatedTodos.length > 0) {
+                            loadTodos();
+                        }
+                    } else {
+                        closeAnalysisLoadingModal();
+                        alert('Failed to analyze tasks: ' + data.error);
+                    }
+                } catch (error) {
+                    closeAnalysisLoadingModal();
+                    alert('Error analyzing tasks: ' + error.message);
+                } finally {
+                    // Reset flag to allow new requests
+                    isAnalyzing = false;
+                }
+            }, 100); // 100ms delay to ensure modal is rendered
         }
         
         // Show analysis modal
@@ -1168,6 +1239,56 @@
                 </div>
             `;
             document.body.appendChild(modal);
+        }
+        
+        // Show analysis loading modal
+        function showAnalysisLoadingModal() {
+            // Disable the AI Analyze button to prevent multiple clicks
+            const analyzeButton = document.querySelector('button[onclick="analyzeTasks()"]');
+            if (analyzeButton) {
+                analyzeButton.disabled = true;
+                analyzeButton.style.opacity = '0.6';
+                analyzeButton.style.cursor = 'not-allowed';
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'analysisLoadingModal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 500px; text-align: center;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">🤖 AI Analysis</h3>
+                    </div>
+                    <div class="modal-body">
+                        <div style="padding: 20px;">
+                            <div class="loading-spinner" style="font-size: 2rem; margin-bottom: 15px;">⏳</div>
+                            <h4>Analyzing your tasks...</h4>
+                            <p style="color: #666; margin-top: 10px;">Please wait while AI analyzes your task priorities and provides insights.</p>
+                            <div style="margin-top: 15px; font-size: 0.9rem; color: #888;">
+                                <p>⏱️ This may take up to 2 minutes...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // Close analysis loading modal
+        function closeAnalysisLoadingModal() {
+            const modal = document.getElementById('analysisLoadingModal');
+            if (modal) {
+                modal.remove();
+            }
+            
+            // Re-enable the AI Analyze button
+            const analyzeButton = document.querySelector('button[onclick="analyzeTasks()"]');
+            if (analyzeButton) {
+                analyzeButton.disabled = false;
+                analyzeButton.style.opacity = '1';
+                analyzeButton.style.cursor = 'pointer';
+            }
         }
         
         // Set project
@@ -1351,6 +1472,22 @@
                 const healthResponse = await fetch(`${API_BASE.replace('/api', '')}/health`);
                 const healthData = await healthResponse.json();
                 currentProjectId = healthData.projectId;
+                
+                // Update project context indicator
+                const projectContext = document.getElementById('project-context');
+                const projectName = document.getElementById('current-project-name');
+                const projectPath = document.getElementById('current-project-path');
+                
+                if (currentProjectId && projects.length > 0) {
+                    const currentProject = projects.find(p => p.id === currentProjectId);
+                    if (currentProject) {
+                        projectName.textContent = currentProject.name;
+                        projectPath.textContent = currentProject.path;
+                        projectContext.style.display = 'block';
+                    }
+                } else {
+                    projectContext.style.display = 'none';
+                }
             } catch (error) {
                 console.error('Error fetching current project:', error);
             }
@@ -1448,8 +1585,12 @@
                                                     </div>
                                                 ` : ''}
                                                 <div class="completed-actions">
-                                                    <button class="action-btn edit" onclick="editTask('${todo.id}')">✏️ Edit</button>
-                                                    <button class="action-btn delete" onclick="removeTask('${todo.id}')">🗑️ Delete</button>
+                                                    ${todo.projectId === currentProjectId ? `
+                                                        <button class="action-btn edit" onclick="editTask('${todo.id}')">✏️ Edit</button>
+                                                        <button class="action-btn delete" onclick="removeTask('${todo.id}')">🗑️ Delete</button>
+                                                    ` : `
+                                                        <span class="readonly-indicator">👁️ Read-only (other project)</span>
+                                                    `}
                                                 </div>
                                             </div>
                                         ` : ''}
@@ -1487,9 +1628,13 @@
                                             </div>
                                         </div>
                                         <div class="todo-actions">
-                                            <button class="action-btn edit" onclick="editTask('${todo.id}')">✏️ Edit</button>
-                                            <button class="action-btn complete" onclick="markTaskDone('${todo.id}')">✅ Done</button>
-                                            <button class="action-btn delete" onclick="removeTask('${todo.id}')">🗑️ Delete</button>
+                                            ${todo.projectId === currentProjectId ? `
+                                                <button class="action-btn edit" onclick="editTask('${todo.id}')">✏️ Edit</button>
+                                                <button class="action-btn complete" onclick="markTaskDone('${todo.id}')">✅ Done</button>
+                                                <button class="action-btn delete" onclick="removeTask('${todo.id}')">🗑️ Delete</button>
+                                            ` : `
+                                                <span class="readonly-indicator">👁️ Read-only (other project)</span>
+                                            `}
                                         </div>
                                         ` : ''}
                                     </div>

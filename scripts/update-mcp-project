@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Update MCP Todo Server Project Context
+# This script can be run from any Cursor IDE workspace to update the MCP Todo Server
+
+# Get the current directory (Cursor IDE workspace)
+CURRENT_DIR=$(pwd)
+PROJECT_NAME=$(basename "$CURRENT_DIR")
+
+echo "🔍 Cursor IDE Workspace Detected:"
+echo "📁 Path: $CURRENT_DIR"
+echo "📝 Name: $PROJECT_NAME"
+
+# Update the MCP Todo Server project context
+echo "🔄 Updating MCP Todo Server..."
+
+# Use curl to make the API call
+response=$(curl -s -X POST http://localhost:3300/api/project \
+  -H "Content-Type: application/json" \
+  -d "{\"path\":\"$CURRENT_DIR\",\"name\":\"$PROJECT_NAME\"}")
+
+# Check if the response contains success
+if echo "$response" | grep -q '"success":true'; then
+  echo "✅ MCP Todo Server updated successfully!"
+  echo "🎉 Active Project: $PROJECT_NAME"
+  echo "📍 Path: $CURRENT_DIR"
+  echo ""
+  echo "🌐 View your tasks at: http://localhost:3300"
+else
+  echo "❌ Failed to update MCP Todo Server"
+  echo "Response: $response"
+  exit 1
+fi
+

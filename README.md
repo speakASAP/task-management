@@ -1,6 +1,6 @@
 # MCP Todo Server
 
-A unified todo management server built with the Model Context Protocol (MCP) that provides intelligent task management with both MCP protocol support and web UI interface.
+A unified todo management server built with the Model Context Protocol (MCP) that provides intelligent task management with both MCP protocol support and web UI interface. Perfect for individual developers using Cursor IDE.
 
 ![Enhanced Todo System](assets/screenshot1.png)
 
@@ -9,10 +9,41 @@ A unified todo management server built with the Model Context Protocol (MCP) tha
 - **Unified Server**: Single server providing both MCP protocol and HTTP API
 - **MCP Protocol Support**: Full Model Context Protocol implementation for AI agent integration
 - **Web UI Interface**: Modern web interface for task management
-- **SQLite Storage**: No external dependencies - uses SQLite for data persistence
+- **Central Database**: Single SQLite database for all projects - no project-specific databases
+- **Project Isolation**: Tasks are organized by project while using a shared database
 - **AI-Powered Analysis**: OpenAI/OpenRouter integration for intelligent task prioritization
-- **Session Management**: Project-based todo organization
+- **Session Management**: Project-based todo organization with automatic project detection
 - **Health Monitoring**: Comprehensive health checks and monitoring
+
+## 🏗️ Central Database Architecture
+
+The MCP Todo Server uses a **central database approach** to ensure consistency and reliability:
+
+### **Single Database for All Projects**
+
+- **Location**: `~/.mcp-todo-server/mcp-todo.db` (user's home directory)
+- **Scope**: All projects and tasks stored in one SQLite database
+- **Benefits**:
+  - **Portable**: Works from any directory, any project
+  - **User-specific**: Each user has their own database
+  - **No duplicate databases**: One database for all projects
+  - **Consistent access**: Same data from any project
+  - **Simplified backup**: Single database to backup
+  - **Unified web UI**: Shows all projects in one interface
+
+### **Project Isolation**
+
+- **Project Context**: Each project has a unique `projectId`
+- **Task Organization**: Tasks are linked to projects via `projectId` foreign key
+- **Automatic Detection**: Server automatically detects project name and path
+- **Smart Naming**: Detects project name from `package.json`, `.git`, or directory name
+- **Manual Switching**: Use `project_set()` to switch between projects
+
+### **Fresh Installation**
+
+- **No Migration Needed**: New installations use portable database from the start
+- **Clean Setup**: Each user gets their own database in `~/.mcp-todo-server/`
+- **Automatic Project Detection**: Projects are created automatically as needed
 
 ## 🛠️ MCP Tools
 
@@ -55,51 +86,42 @@ The server exposes the following MCP tools:
 
 ### Installation
 
-#### For Individual Use
-
 1. **Clone the repository**
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/speakASAP/task-management.git
    cd task-management
    ```
 
-2. **Install dependencies**
+2. **Run the setup script**
 
    ```bash
-   npm install
+   ./setup.sh
    ```
 
-3. **Build the project**
+   This will:
+   - Install all dependencies
+   - Build the project
+   - Install Cursor configuration
 
-   ```bash
-   npm run build
-   ```
-
-4. **Install Cursor IDE integration**
-
-   ```bash
-   npm run install-cursor
-   ```
-
-5. **Start the server**
+3. **Start the server**
 
    ```bash
    npm start
    ```
 
-6. **Restart Cursor IDE**
+4. **Restart Cursor IDE**
 
 The server will start on `http://localhost:3300` with both MCP protocol support and web UI.
 
 #### For Easy Setup
 
-**One-command setup:**
+**One-command complete setup (Recommended for new users):**
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/speakASAP/task-management.git
 cd task-management
-./setup.sh
+npm run setup
 ```
 
 This automatically:
@@ -107,13 +129,27 @@ This automatically:
 - Installs dependencies
 - Builds the project
 - Configures Cursor IDE
-- Sets up everything needed
+- Installs universal client
+- Starts the server with both MCP and HTTP interfaces
+- Provides usage instructions
 
 **For updates after git pull:**
 
 ```bash
 git pull
-./setup.sh
+npm run setup
+```
+
+**Alternative: Manual setup:**
+
+```bash
+git clone https://github.com/speakASAP/task-management.git
+cd task-management
+npm install
+npm run build
+npm run install-cursor
+npm run install-universal-client
+npm start
 ```
 
 📚 **See [SETUP.md](SETUP.md) for detailed setup guide**

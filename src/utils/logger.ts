@@ -11,7 +11,7 @@ export class Logger {
     private parseLogLevel(level: string): LogLevel {
         const levels: LogLevel[] = ['debug', 'info', 'warn', 'error'];
         const index = levels.indexOf(level.toLowerCase() as LogLevel);
-        return index >= 0 ? levels[index] : 'info';
+        return (index >= 0 ? levels[index] : 'info') as LogLevel;
     }
 
     private shouldLog(level: LogLevel): boolean {

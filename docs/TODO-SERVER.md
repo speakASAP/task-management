@@ -40,7 +40,7 @@ Unified MCP Todo Server
 
 - `package.json` - NPM package configuration
 - `tsconfig.json` - TypeScript configuration
-- `install-standalone.sh` - Installation script
+- `setup.sh` - Installation script
 
 ### **Documentation**
 
@@ -55,8 +55,8 @@ Unified MCP Todo Server
 # Clone and install
 git clone <your-repo>
 cd task-management
-chmod +x install.sh
-./install.sh
+chmod +x setup.sh
+./setup.sh
 
 # Or install globally
 npm install -g mcp-todo-server
@@ -100,7 +100,7 @@ project_set("/path/to/project", "My Project")
 
 | Feature | Current (Docker) | New (Unified) |
 |---------|------------------|---------------|
-| **Installation** | Complex Docker setup | `npm install` + `./install.sh` |
+| **Installation** | Complex Docker setup | `./setup.sh` |
 | **Dependencies** | Redis + Docker | SQLite only |
 | **Web UI** | None | Modern, responsive interface |
 | **Project Management** | Session-based | Project directory-based |
@@ -157,10 +157,10 @@ project_set("/path/to/project", "My Project")
 - **Web Interface** - Visual task management
 - **Cursor Integration** - Seamless IDE integration
 
-### **For Teams**
+### **For Multiple Projects**
 
-- **Shared Projects** - Use same project directory for shared tasks
-- **Web Access** - Non-developers can use web UI
+- **Project Organization** - Different tasks for different projects
+- **Web Access** - Easy access via web UI
 - **No Infrastructure** - No servers or databases to manage
 
 ### **For Students**

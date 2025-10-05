@@ -19,6 +19,8 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import os from 'os';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 // @ts-ignore - better-sqlite3 types
 import Database from 'better-sqlite3';
@@ -39,6 +41,7 @@ class UnifiedMCPServer {
   private httpApp!: express.Application;
   private db: Database.Database;
   private currentProjectId: string | null = null;
+  private projectContextExplicitlySet: boolean = false;
   private port: number;
   private analysisEngine: AnalysisEngine | null = null;
   private logger: Logger;
@@ -87,7 +90,16 @@ class UnifiedMCPServer {
   }
 
   private initializeDatabase(): void {
-    const dbPath = path.join(process.cwd(), 'mcp-todo.db');
+    // Use user's home directory for database - works from anywhere
+    const homeDir = os.homedir();
+    const dbDir = path.join(homeDir, '.mcp-todo-server');
+    
+    // Ensure database directory exists
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+    
+    const dbPath = path.join(dbDir, 'mcp-todo.db');
     this.db = new Database(dbPath);
     
     // Create tables
@@ -137,6 +149,40 @@ class UnifiedMCPServer {
       this.db.exec(`ALTER TABLE todos ADD COLUMN aiGuidance TEXT;`);
     } catch (error) {
       // Column already exists, ignore error
+    }
+
+    // Migration: Make projectId NOT NULL and clean up orphaned todos
+    try {
+      // First, delete todos without projectId (orphaned todos)
+      this.db.exec(`DELETE FROM todos WHERE projectId IS NULL;`);
+      
+      // Then recreate the table with NOT NULL constraint for projectId
+      this.db.exec(`
+        CREATE TABLE todos_new (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          createdAt TEXT NOT NULL,
+          updatedAt TEXT NOT NULL,
+          projectId TEXT NOT NULL,
+          priority INTEGER DEFAULT 5,
+          tags TEXT,
+          analysis TEXT,
+          detailedInstructions TEXT,
+          aiGuidance TEXT,
+          FOREIGN KEY (projectId) REFERENCES projects (id)
+        );
+        
+        INSERT INTO todos_new SELECT * FROM todos;
+        DROP TABLE todos;
+        ALTER TABLE todos_new RENAME TO todos;
+        
+        CREATE INDEX IF NOT EXISTS idx_todos_project ON todos(projectId);
+        CREATE INDEX IF NOT EXISTS idx_todos_status ON todos(status);
+      `);
+    } catch (error) {
+      // Migration failed, but continue - the application will handle validation
+      console.warn('Database migration warning:', error);
     }
   }
 
@@ -222,6 +268,25 @@ class UnifiedMCPServer {
               },
               required: ['path']
             }
+          },
+          {
+            name: 'project_auto_detect',
+            description: 'Auto-detect and switch to current IDE project',
+            inputSchema: {
+              type: 'object',
+              properties: {}
+            }
+          },
+          {
+            name: 'project_detect_cursor',
+            description: 'Detect current project from Cursor IDE workspace context',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                workspacePath: { type: 'string', description: 'Current workspace path from Cursor IDE' }
+              },
+              required: ['workspacePath']
+            }
           }
         ]
       };
@@ -252,6 +317,12 @@ class UnifiedMCPServer {
             break;
           case 'project_set':
             result = await this.setProject(args?.['path'] as string, args?.['name'] as string);
+            break;
+          case 'project_auto_detect':
+            result = await this.autoDetectProject();
+            break;
+          case 'project_detect_cursor':
+            result = await this.detectProjectFromCursor(args?.['workspacePath'] as string);
             break;
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -364,7 +435,17 @@ class UnifiedMCPServer {
       }
     });
 
-    // Project endpoint
+    // Project endpoints
+    this.httpApp.get('/api/project', async (_req, res) => {
+      try {
+        const stmt = this.db.prepare('SELECT * FROM projects WHERE id = ?');
+        const project = stmt.get(this.currentProjectId);
+        res.json(project || { name: null, path: null });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to get current project' });
+      }
+    });
+
     this.httpApp.post('/api/project', async (req, res) => {
       try {
         const { path, name } = req.body;
@@ -372,6 +453,16 @@ class UnifiedMCPServer {
         res.json(result);
       } catch (error) {
         res.status(500).json({ error: 'Failed to set project' });
+      }
+    });
+
+    // Auto-detect and switch project via HTTP API
+    this.httpApp.post('/api/project/auto', async (_req, res) => {
+      try {
+        const result = await this.autoDetectProject();
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to auto-detect project' });
       }
     });
 
@@ -395,31 +486,69 @@ class UnifiedMCPServer {
 
   // Database operations
   private async addTodo(name: string, priority: number = 5, tags: string[] = [], detailedInstructions?: string): Promise<{ success: boolean; data?: Todo; message: string; error?: string }> {
+    // Validate mandatory fields
+    if (!name || name.trim().length === 0) {
+      return {
+        success: false,
+        error: 'Todo name is mandatory and cannot be empty',
+        message: 'Failed to add todo: name is required'
+      };
+    }
+
+    // Validate project context
+    if (!this.currentProjectId || !this.projectContextExplicitlySet) {
+      return {
+        success: false,
+        error: 'Project context is mandatory. Please explicitly set a project before creating todos using project_set.',
+        message: 'Failed to add todo: no explicit project context set'
+      };
+    }
+
+    // Verify project exists in database
+    const projectStmt = this.db.prepare('SELECT id FROM projects WHERE id = ?');
+    const project = projectStmt.get(this.currentProjectId);
+    
+    if (!project) {
+      return {
+        success: false,
+        error: 'Invalid project context. The current project does not exist in the database.',
+        message: 'Failed to add todo: invalid project context'
+      };
+    }
+
     const id = uuidv4();
     const now = new Date().toISOString();
     
-    const stmt = this.db.prepare(`
-      INSERT INTO todos (id, name, status, createdAt, updatedAt, projectId, priority, tags, detailedInstructions, aiGuidance)
-      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    stmt.run(id, name, now, now, this.currentProjectId, priority, JSON.stringify(tags), detailedInstructions || null, null);
-    
-    return {
-      success: true,
-      data: { 
-        id, 
-        name, 
-        status: 'pending', 
-        createdAt: new Date(now), 
-        updatedAt: new Date(now), 
-        priority, 
-        tags,
-        detailedInstructions: detailedInstructions || '',
-        aiGuidance: ''
-      },
-      message: 'Todo added successfully'
-    };
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO todos (id, name, status, createdAt, updatedAt, projectId, priority, tags, detailedInstructions, aiGuidance)
+        VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      stmt.run(id, name.trim(), now, now, this.currentProjectId, priority, JSON.stringify(tags), detailedInstructions || null, null);
+      
+      return {
+        success: true,
+        data: { 
+          id, 
+          name: name.trim(), 
+          status: 'pending', 
+          createdAt: new Date(now), 
+          updatedAt: new Date(now), 
+          priority, 
+          tags,
+          detailedInstructions: detailedInstructions || '',
+          aiGuidance: ''
+        },
+        message: 'Todo added successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Database error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: 'Failed to add todo due to database error'
+      };
+    }
   }
 
   private async listTodos(status: string = 'all'): Promise<any> {
@@ -454,23 +583,86 @@ class UnifiedMCPServer {
   }
 
   private async markTodoDone(id: string): Promise<any> {
-    const stmt = this.db.prepare('UPDATE todos SET status = ?, priority = ?, updatedAt = ? WHERE id = ? AND projectId = ?');
-    const result = stmt.run('completed', 10, new Date().toISOString(), id, this.currentProjectId);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Todo not found' };
+    // Validate project context
+    if (!this.currentProjectId || !this.projectContextExplicitlySet) {
+      return {
+        success: false,
+        error: 'Project context is mandatory. Please explicitly set a project before updating todos using project_set.',
+        message: 'Failed to mark todo as done: no explicit project context set'
+      };
     }
+
+    // Verify project exists in database
+    const projectStmt = this.db.prepare('SELECT id FROM projects WHERE id = ?');
+    const project = projectStmt.get(this.currentProjectId);
     
-    return { success: true, message: 'Todo marked as completed' };
+    if (!project) {
+      return {
+        success: false,
+        error: 'Invalid project context. The current project does not exist in the database.',
+        message: 'Failed to mark todo as done: invalid project context'
+      };
+    }
+
+    try {
+      const stmt = this.db.prepare('UPDATE todos SET status = ?, priority = ?, updatedAt = ? WHERE id = ? AND projectId = ?');
+      const result = stmt.run('completed', 10, new Date().toISOString(), id, this.currentProjectId);
+      
+      if (result.changes === 0) {
+        return { 
+          success: false, 
+          error: 'Todo not found in current project context',
+          message: 'Failed to mark todo as done: todo not found in active project'
+        };
+      }
+      
+      return { success: true, message: 'Todo marked as completed' };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Database error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: 'Failed to mark todo as done due to database error'
+      };
+    }
   }
 
   private async updateTodo(id: string, updates: { name?: string; priority?: number; tags?: string[]; detailedInstructions?: string; status?: string }): Promise<any> {
+    // Validate project context
+    if (!this.currentProjectId || !this.projectContextExplicitlySet) {
+      return {
+        success: false,
+        error: 'Project context is mandatory. Please explicitly set a project before updating todos using project_set.',
+        message: 'Failed to update todo: no explicit project context set'
+      };
+    }
+
+    // Verify project exists in database
+    const projectStmt = this.db.prepare('SELECT id FROM projects WHERE id = ?');
+    const project = projectStmt.get(this.currentProjectId);
+    
+    if (!project) {
+      return {
+        success: false,
+        error: 'Invalid project context. The current project does not exist in the database.',
+        message: 'Failed to update todo: invalid project context'
+      };
+    }
+
+    // Validate name if being updated
+    if (updates.name !== undefined && (!updates.name || updates.name.trim().length === 0)) {
+      return {
+        success: false,
+        error: 'Todo name is mandatory and cannot be empty',
+        message: 'Failed to update todo: name cannot be empty'
+      };
+    }
+
     const updateFields = [];
     const values = [];
     
     if (updates.name !== undefined) {
       updateFields.push('name = ?');
-      values.push(updates.name);
+      values.push(updates.name.trim());
     }
     if (updates.priority !== undefined) {
       updateFields.push('priority = ?');
@@ -498,32 +690,106 @@ class UnifiedMCPServer {
     values.push(id);
     values.push(this.currentProjectId);
     
-    const stmt = this.db.prepare(`UPDATE todos SET ${updateFields.join(', ')} WHERE id = ? AND projectId = ?`);
-    const result = stmt.run(...values);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Todo not found' };
+    try {
+      const stmt = this.db.prepare(`UPDATE todos SET ${updateFields.join(', ')} WHERE id = ? AND projectId = ?`);
+      const result = stmt.run(...values);
+      
+      if (result.changes === 0) {
+        return { 
+          success: false, 
+          error: 'Todo not found in current project context',
+          message: 'Failed to update todo: todo not found in active project'
+        };
+      }
+      
+      return { success: true, message: 'Todo updated successfully' };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Database error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: 'Failed to update todo due to database error'
+      };
     }
-    
-    return { success: true, message: 'Todo updated successfully' };
   }
 
   private async removeTodo(id: string): Promise<any> {
-    const stmt = this.db.prepare('DELETE FROM todos WHERE id = ? AND projectId = ?');
-    const result = stmt.run(id, this.currentProjectId);
-    
-    if (result.changes === 0) {
-      return { success: false, error: 'Todo not found' };
+    // Validate project context
+    if (!this.currentProjectId || !this.projectContextExplicitlySet) {
+      return {
+        success: false,
+        error: 'Project context is mandatory. Please explicitly set a project before removing todos using project_set.',
+        message: 'Failed to remove todo: no explicit project context set'
+      };
     }
+
+    // Verify project exists in database
+    const projectStmt = this.db.prepare('SELECT id FROM projects WHERE id = ?');
+    const project = projectStmt.get(this.currentProjectId);
     
-    return { success: true, message: 'Todo removed successfully' };
+    if (!project) {
+      return {
+        success: false,
+        error: 'Invalid project context. The current project does not exist in the database.',
+        message: 'Failed to remove todo: invalid project context'
+      };
+    }
+
+    try {
+      const stmt = this.db.prepare('DELETE FROM todos WHERE id = ? AND projectId = ?');
+      const result = stmt.run(id, this.currentProjectId);
+      
+      if (result.changes === 0) {
+        return { 
+          success: false, 
+          error: 'Todo not found in current project context',
+          message: 'Failed to remove todo: todo not found in active project'
+        };
+      }
+      
+      return { success: true, message: 'Todo removed successfully' };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Database error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: 'Failed to remove todo due to database error'
+      };
+    }
   }
 
   private async clearTodos(): Promise<any> {
-    const stmt = this.db.prepare('DELETE FROM todos WHERE projectId = ?');
-    const result = stmt.run(this.currentProjectId);
+    // Validate project context
+    if (!this.currentProjectId || !this.projectContextExplicitlySet) {
+      return {
+        success: false,
+        error: 'Project context is mandatory. Please explicitly set a project before clearing todos using project_set.',
+        message: 'Failed to clear todos: no explicit project context set'
+      };
+    }
+
+    // Verify project exists in database
+    const projectStmt = this.db.prepare('SELECT id FROM projects WHERE id = ?');
+    const project = projectStmt.get(this.currentProjectId);
     
-    return { success: true, message: `Cleared ${result.changes} todos` };
+    if (!project) {
+      return {
+        success: false,
+        error: 'Invalid project context. The current project does not exist in the database.',
+        message: 'Failed to clear todos: invalid project context'
+      };
+    }
+
+    try {
+      const stmt = this.db.prepare('DELETE FROM todos WHERE projectId = ?');
+      const result = stmt.run(this.currentProjectId);
+      
+      return { success: true, message: `Cleared ${result.changes} todos from current project` };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Database error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: 'Failed to clear todos due to database error'
+      };
+    }
   }
 
   private async analyzeTodos(): Promise<any> {
@@ -712,21 +978,31 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
     return formatted;
   }
 
-  private async setProject(path: string, name?: string): Promise<{ success: boolean; data?: Project; message: string; error?: string }> {
-    // Check if project exists
-    let stmt = this.db.prepare('SELECT * FROM projects WHERE path = ?');
-    let project = stmt.get(path);
+  private async setProjectInternal(path: string, name?: string, explicitlySet: boolean = true): Promise<{ success: boolean; data?: Project; message: string; error?: string }> {
+    // Normalize path (remove trailing slash)
+    const normalizedPath = path.endsWith('/') ? path.slice(0, -1) : path;
+    
+    // Check if project exists (try both with and without trailing slash)
+    let stmt = this.db.prepare('SELECT * FROM projects WHERE path = ? OR path = ?');
+    let project = stmt.get(normalizedPath, normalizedPath + '/');
+    
+    // If still not found, try to find by name if it's a known project
+    if (!project && name) {
+      stmt = this.db.prepare('SELECT * FROM projects WHERE name = ? ORDER BY createdAt DESC LIMIT 1');
+      project = stmt.get(name);
+    }
     
     if (!project) {
       // Create new project
       const projectId = uuidv4();
       const now = new Date().toISOString();
       stmt = this.db.prepare('INSERT INTO projects (id, name, path, createdAt) VALUES (?, ?, ?, ?)');
-      stmt.run(projectId, name || path.split('/').pop() || 'Unknown Project', path, now);
-      project = { id: projectId, name: name || path.split('/').pop() || 'Unknown Project', path, createdAt: now };
+      stmt.run(projectId, name || normalizedPath.split('/').pop() || 'Unknown Project', normalizedPath, now);
+      project = { id: projectId, name: name || normalizedPath.split('/').pop() || 'Unknown Project', path: normalizedPath, createdAt: now };
     }
     
     this.currentProjectId = project.id;
+    this.projectContextExplicitlySet = explicitlySet;
     
     return {
       success: true,
@@ -735,16 +1011,250 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
     };
   }
 
+  private async setProject(path: string, name?: string): Promise<{ success: boolean; data?: Project; message: string; error?: string }> {
+    return this.setProjectInternal(path, name, true);
+  }
+
+  private async autoDetectProject(): Promise<{ success: boolean; data?: Project; message: string; error?: string }> {
+    try {
+      // Use enhanced Cursor IDE detection first
+      const projectPath = this.detectCurrentProjectFromCursor();
+      const projectName = this.detectProjectName(projectPath);
+      const result = await this.setProject(projectPath, projectName);
+      
+      if (result.data) {
+        return {
+          success: true,
+          data: result.data,
+          message: `Auto-detected and switched to project: ${result.data.name} (${projectPath})`
+        };
+      } else {
+        return {
+          success: false,
+          message: 'Failed to set project context',
+          error: 'Project data not available'
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to auto-detect project',
+        error: error instanceof Error ? error.message : 'Failed to auto-detect project'
+      };
+    }
+  }
+
   private getTotalTodos(): number {
     const stmt = this.db.prepare('SELECT COUNT(*) as count FROM todos');
     const result = stmt.get();
     return result?.count || 0;
   }
 
-  public async start(): Promise<void> {
-    // Auto-detect project from current working directory
+  private detectCurrentProject(): string {
+    // Priority 1: Check for IDE-specific environment variables
+    const ideProjectPath = process.env['CURSOR_PROJECT_PATH'] || 
+                          process.env['VSCODE_PROJECT_PATH'] || 
+                          process.env['WORKSPACE_PATH'] ||
+                          process.env['PROJECT_PATH'];
+    
+    if (ideProjectPath && fs.existsSync(ideProjectPath)) {
+      this.logger.info(`Detected IDE project path: ${ideProjectPath}`);
+      return ideProjectPath;
+    }
+    
+    // Priority 2: Check for Cursor IDE workspace file
+    const cursorWorkspace = process.env['CURSOR_WORKSPACE'] || 
+                           process.env['VSCODE_WORKSPACE'];
+    if (cursorWorkspace && fs.existsSync(cursorWorkspace)) {
+      try {
+        const workspaceContent = fs.readFileSync(cursorWorkspace, 'utf8');
+        const workspace = JSON.parse(workspaceContent);
+        if (workspace.folders && workspace.folders.length > 0) {
+          const firstFolder = workspace.folders[0];
+          const projectPath = firstFolder.path.startsWith('/') ? 
+                             firstFolder.path : 
+                             path.resolve(path.dirname(cursorWorkspace), firstFolder.path);
+          if (fs.existsSync(projectPath)) {
+            this.logger.info(`Detected workspace project path: ${projectPath}`);
+            return projectPath;
+          }
+        }
+      } catch (error) {
+        this.logger.warn('Failed to parse workspace file:', error);
+      }
+    }
+    
+    // Priority 3: Check for .cursor or .vscode directory in current working directory
     const cwd = process.cwd();
-    await this.setProject(cwd);
+    const cursorDir = path.join(cwd, '.cursor');
+    const vscodeDir = path.join(cwd, '.vscode');
+    
+    if (fs.existsSync(cursorDir) || fs.existsSync(vscodeDir)) {
+      this.logger.info(`Detected IDE project directory: ${cwd}`);
+      return cwd;
+    }
+    
+    // Priority 4: Check if current directory is a Git repository
+    if (fs.existsSync(path.join(cwd, '.git'))) {
+      this.logger.info(`Detected Git repository: ${cwd}`);
+      return cwd;
+    }
+    
+    // Priority 5: Check for project files in current directory
+    const projectFiles = ['package.json', 'Cargo.toml', 'go.mod', 'requirements.txt', 'composer.json', 'Gemfile'];
+    for (const file of projectFiles) {
+      if (fs.existsSync(path.join(cwd, file))) {
+        this.logger.info(`Detected project with ${file}: ${cwd}`);
+        return cwd;
+      }
+    }
+    
+    // Fallback: Use current working directory
+    this.logger.info(`Using current working directory: ${cwd}`);
+    return cwd;
+  }
+
+  // Enhanced project detection for Cursor IDE integration
+  private detectCurrentProjectFromCursor(): string {
+    // Try to get the current workspace from Cursor IDE context
+    // This method will be called when the MCP server is initialized from Cursor IDE
+    
+    // Check if we're running in Cursor IDE context
+    const isCursorContext = process.env['CURSOR_AI'] === 'true' || 
+                           process.env['CURSOR_WORKSPACE'] !== undefined ||
+                           process.env['VSCODE_PID'] !== undefined;
+    
+    if (isCursorContext) {
+      // Try to get workspace from Cursor IDE environment
+      const workspacePath = process.env['CURSOR_WORKSPACE'] || 
+                           process.env['VSCODE_WORKSPACE'] ||
+                           process.env['WORKSPACE_PATH'];
+      
+      if (workspacePath) {
+        // If it's a workspace file, parse it
+        if (workspacePath.endsWith('.code-workspace') || workspacePath.endsWith('.cursor-workspace')) {
+          try {
+            const workspaceContent = fs.readFileSync(workspacePath, 'utf8');
+            const workspace = JSON.parse(workspaceContent);
+            if (workspace.folders && workspace.folders.length > 0) {
+              const firstFolder = workspace.folders[0];
+              const projectPath = firstFolder.path.startsWith('/') ? 
+                                 firstFolder.path : 
+                                 path.resolve(path.dirname(workspacePath), firstFolder.path);
+              if (fs.existsSync(projectPath)) {
+                this.logger.info(`Detected Cursor IDE workspace project: ${projectPath}`);
+                return projectPath;
+              }
+            }
+          } catch (error) {
+            this.logger.warn('Failed to parse Cursor workspace file:', error);
+          }
+        } else if (fs.existsSync(workspacePath)) {
+          // Direct path to project directory
+          this.logger.info(`Detected Cursor IDE project path: ${workspacePath}`);
+          return workspacePath;
+        }
+      }
+    }
+    
+    // Fallback to standard detection
+    return this.detectCurrentProject();
+  }
+
+
+  // Detect project from Cursor IDE workspace path
+  private async detectProjectFromCursor(workspacePath: string): Promise<{ success: boolean; data?: Project; message: string; error?: string }> {
+    try {
+      if (!workspacePath) {
+        return {
+          success: false,
+          message: 'No workspace path provided',
+          error: 'Workspace path is required'
+        };
+      }
+
+      // Normalize the path
+      const normalizedPath = workspacePath.endsWith('/') ? workspacePath.slice(0, -1) : workspacePath;
+      
+      // Check if the path exists
+      if (!fs.existsSync(normalizedPath)) {
+        return {
+          success: false,
+          message: 'Workspace path does not exist',
+          error: `Path not found: ${normalizedPath}`
+        };
+      }
+
+      // Detect project name
+      const projectName = this.detectProjectName(normalizedPath);
+      
+      // Set the project
+      const result = await this.setProject(normalizedPath, projectName);
+      
+      if (result.data) {
+        return {
+          success: true,
+          data: result.data,
+          message: `Detected and switched to Cursor IDE project: ${result.data.name} (${normalizedPath})`
+        };
+      } else {
+        return {
+          success: false,
+          message: 'Failed to set project context',
+          error: 'Project data not available'
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to detect project from Cursor IDE',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  private detectProjectName(projectPath: string): string {
+    // Try to detect project name from various sources
+    const pathParts = projectPath.split(path.sep);
+    const dirName = pathParts[pathParts.length - 1];
+    
+    // Check for package.json
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      try {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        if (packageJson.name) {
+          return packageJson.name;
+        }
+      } catch (error) {
+        // Ignore JSON parse errors
+      }
+    }
+    
+    // Check for .git directory (Git repository)
+    if (fs.existsSync(path.join(projectPath, '.git'))) {
+      return dirName || 'Unknown Project';
+    }
+    
+    // Check for common project files
+    const projectFiles = ['Cargo.toml', 'go.mod', 'requirements.txt', 'composer.json', 'Gemfile'];
+    for (const file of projectFiles) {
+      if (fs.existsSync(path.join(projectPath, file))) {
+        return dirName || 'Unknown Project';
+      }
+    }
+    
+    // Fallback to directory name
+    return dirName || 'Unknown Project';
+  }
+
+  public async start(): Promise<void> {
+    // Auto-detect project from current working directory or IDE context
+    const projectPath = this.detectCurrentProjectFromCursor();
+    const projectName = this.detectProjectName(projectPath);
+    
+    // Set project context but don't mark as explicitly set (for validation)
+    await this.setProjectInternal(projectPath, projectName, false);
     
     // Start HTTP server
     this.httpApp.listen(this.port, () => {
@@ -753,7 +1263,7 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
       console.log(`📱 Web UI: ${baseUrl}:${this.port}`);
       console.log(`🔧 API: ${baseUrl}:${this.port}/api`);
       console.log(`📋 Health: ${baseUrl}:${this.port}/health`);
-      console.log(`📁 Project: ${cwd}`);
+      console.log(`📁 Project: ${projectPath}`);
     });
   }
 
@@ -780,6 +1290,16 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
         };
 
       case 'initialized':
+        // Auto-detect and set project context when MCP is initialized
+        try {
+          const projectPath = this.detectCurrentProjectFromCursor();
+          const projectName = this.detectProjectName(projectPath);
+          await this.setProject(projectPath, projectName);
+          this.logger.info(`MCP initialized with project: ${projectName} (${projectPath})`);
+        } catch (error) {
+          this.logger.warn('Failed to auto-detect project on MCP initialization:', error);
+        }
+        // No response needed for initialized notification
         return;
 
       case 'tools/list':
@@ -852,6 +1372,14 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
                   },
                   required: ['path']
                 }
+              },
+              {
+                name: 'project_auto_detect',
+                description: 'Auto-detect and switch to current IDE project',
+                inputSchema: {
+                  type: 'object',
+                  properties: {}
+                }
               }
             ]
           }
@@ -896,6 +1424,12 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
           break;
         case 'project_set':
           result = await this.setProject(args?.['path'] as string, args?.['name'] as string);
+          break;
+        case 'project_auto_detect':
+          result = await this.autoDetectProject();
+          break;
+        case 'project_detect_cursor':
+          result = await this.detectProjectFromCursor(args?.['workspacePath'] as string);
           break;
         default:
           return {
@@ -946,14 +1480,19 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
         if (line.trim()) {
           try {
             const request = JSON.parse(line);
-            // Handle MCP request manually since handleRequest doesn't exist
-            this.handleMCPRequest(request).then((response: any) => {
-              if (response) {
-                process.stdout.write(JSON.stringify(response) + '\n');
+            // Handle MCP request asynchronously
+            (async () => {
+              try {
+                const response = await this.handleMCPRequest(request);
+                if (response) {
+                  process.stdout.write(JSON.stringify(response) + '\n');
+                }
+              } catch (error) {
+                console.error('Failed to process MCP request:', error);
               }
-            });
+            })();
           } catch (error) {
-            console.error('Failed to process MCP request:', error);
+            console.error('Failed to parse MCP request:', error);
           }
         }
       }
@@ -963,11 +1502,23 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
 
 // CLI handling
 if (process.argv.includes('--stdio')) {
-  // MCP mode
+  // MCP mode: run stdio handler AND start HTTP server so the web UI is available
+  // Suppress console output for MCP mode to avoid interfering with stdio
+  console.log = () => {};
+  console.error = () => {};
+  
+  // Redirect stderr to devnull to suppress dotenv and other output
+  process.stderr.write = () => true;
+  
   const server = new UnifiedMCPServer();
+  
+  // Start HTTP server (non-blocking) so http://localhost:3300 is available
+  server.start();
+  
+  // Handle MCP requests via stdio
   server.handleStdio();
 } else {
-  // HTTP mode
+  // HTTP mode only
   const port = parseInt(process.env['SERVER_PORT'] || process.env['PORT'] || '3300');
   const server = new UnifiedMCPServer(port);
   server.start();

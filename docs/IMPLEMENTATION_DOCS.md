@@ -57,8 +57,8 @@ The server exposes the following MCP tools:
 1. **Clone the repository**
 
    ```bash
-   git clone <repository-url>
-   cd mcp-server
+   git clone https://github.com/speakASAP/task-management.git
+   cd task-management
    ```
 
 2. **Install dependencies**
