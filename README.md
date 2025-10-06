@@ -329,7 +329,42 @@ npm run dev
 
 ## 🐳 Docker Deployment
 
-### Docker Build
+### Quick Docker Setup
+
+For the easiest Docker setup with Cursor IDE integration:
+
+```bash
+# Run the complete Docker setup script
+./setup-docker.sh
+```
+
+This will:
+
+- Install MCP server to Cursor IDE
+- Start the server in Docker with hot-reload
+- Set up persistent database storage
+- Provide usage instructions
+
+### Manual Docker Compose
+
+```bash
+# Start development server with hot-reload
+docker compose up -d --build
+
+# Check status
+docker compose ps
+
+# View logs
+docker compose logs -f
+
+# Stop server
+docker compose down
+
+# Clean volumes (wipe database)
+docker compose down -v
+```
+
+### Docker Build (Production)
 
 ```bash
 # Build the Docker image
@@ -339,23 +374,11 @@ docker build -t mcp-todo-server .
 docker run -p 3300:3300 mcp-todo-server
 ```
 
-### Docker Compose
-
-```bash
-# Start with Docker Compose
-docker-compose up -d
-
-# Check status
-docker-compose ps
-
-# View logs
-docker-compose logs -f
-```
-
 The Docker setup includes:
 
 - Todo server with MCP protocol and web UI (port 3300)
-- SQLite database for data persistence
+- SQLite database for data persistence (persistent volume)
+- Hot-reload development mode
 - No external dependencies required
 
 ## 📝 API Examples

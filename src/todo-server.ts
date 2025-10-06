@@ -39,7 +39,7 @@ const __dirname = path.dirname(__filename);
 class UnifiedMCPServer {
   private mcpServer!: Server;
   private httpApp!: express.Application;
-  private db: Database.Database;
+  private db!: Database.Database;
   private currentProjectId: string | null = null;
   private projectContextExplicitlySet: boolean = false;
   private port: number;
@@ -1001,13 +1001,13 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
       project = { id: projectId, name: name || normalizedPath.split('/').pop() || 'Unknown Project', path: normalizedPath, createdAt: now };
     }
     
-    this.currentProjectId = project.id;
+    this.currentProjectId = (project as Project).id;
     this.projectContextExplicitlySet = explicitlySet;
     
     return {
       success: true,
-      data: project,
-      message: `Switched to project: ${project.name}`
+      data: project as Project,
+      message: `Switched to project: ${(project as Project).name}`
     };
   }
 
@@ -1046,7 +1046,7 @@ ${pendingTodos.length > 0 ? '⏳ Pending tasks by priority:\n' + pendingTodos
 
   private getTotalTodos(): number {
     const stmt = this.db.prepare('SELECT COUNT(*) as count FROM todos');
-    const result = stmt.get();
+    const result = stmt.get() as { count: number } | undefined;
     return result?.count || 0;
   }
 

@@ -10,6 +10,78 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "overrides": {
+    "@jest/diff-sequences": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "@jest/expect-utils": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "@jest/get-type": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "@jest/pattern": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "jest-regex-util": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "expect": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "jest-diff": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "jest-matcher-utils": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "jest-message-util": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "@jest/schemas": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "@jest/types": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "jest-mock": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "jest-util": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "pretty-format": {
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    }
+  },
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/todo-server.js",
@@ -43,7 +115,10 @@
     "@modelcontextprotocol/sdk": "^1.18.1",
     "better-sqlite3": "^9.2.2",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "openai": "^6.1.0",
+    "redis": "^5.8.3",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
