@@ -31,4 +31,3 @@ else
   echo "Response: $response"
   exit 1
 fi
-

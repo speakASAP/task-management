@@ -21,6 +21,7 @@ Run this command from any Cursor IDE workspace:
 ```
 
 This will:
+
 - Detect the current workspace directory
 - Extract the project name
 - Update the MCP Todo Server project context
@@ -58,22 +59,26 @@ npm run detect-workspace
 ## Integration with Cursor IDE
 
 ### Option 1: Terminal Command
+
 Open Cursor IDE terminal and run:
+
 ```bash
 /Users/sergiystashok/Documents/GitHub/task-management/scripts/update-mcp-project
 ```
 
 ### Option 2: Keyboard Shortcut
+
 You can create a keyboard shortcut in Cursor IDE to run this command.
 
 ### Option 3: Task Runner
+
 Add this as a task in Cursor IDE's task runner.
 
 ## Verification
 
 After running any of the tools, you can verify the project context by:
 
-1. Opening http://localhost:3300 in your browser
+1. Opening <http://localhost:3300> in your browser
 2. The "Active Project" should show your current Cursor IDE workspace
 3. The project path should match your current directory
 
@@ -101,19 +106,24 @@ cd /Users/sergiystashok/Documents/GitHub/Tresinky_web
 ## Troubleshooting
 
 ### MCP Server Not Running
+
 Make sure the MCP Todo Server is running on port 3300:
+
 ```bash
 # Check if server is running
 curl http://localhost:3300/health
 ```
 
 ### Permission Denied
+
 Make sure the scripts are executable:
+
 ```bash
 chmod +x /Users/sergiystashok/Documents/GitHub/task-management/scripts/update-mcp-project
 ```
 
 ### Wrong Project Detected
+
 The tools use the current working directory. Make sure you're in the correct Cursor IDE workspace directory when running the command.
 
 ## Future Improvements
@@ -122,4 +132,3 @@ The tools use the current working directory. Make sure you're in the correct Cur
 - MCP tool integration for seamless detection
 - Real-time project switching
 - Integration with Cursor IDE's built-in project detection
-

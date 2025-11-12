@@ -20,6 +20,7 @@ npm run setup
 ```
 
 This single command will:
+
 - ✅ Install all dependencies
 - ✅ Build the project
 - ✅ Configure Cursor IDE for MCP integration
@@ -38,16 +39,19 @@ cd task-management
 ## 🔧 What Happens During Setup
 
 ### 1. **MCP Server Installation**
+
 - Creates `~/.cursor/mcp.json` configuration
 - Registers the MCP Todo Server with Cursor IDE
 - Enables MCP tools in Cursor chat
 
 ### 2. **Universal Client Installation**
+
 - Installs `mcp-todo` command globally
 - Enables terminal-based task management
 - Works from any project directory
 
 ### 3. **Server Startup**
+
 - Starts both MCP server (for Cursor IDE)
 - Starts HTTP server (for web UI at localhost:3300)
 - Provides real-time feedback
@@ -55,12 +59,14 @@ cd task-management
 ## 🌐 After Setup
 
 ### **Web Interface**
+
 - Open: `http://localhost:3300`
 - Modern web UI for task management
 - View all projects and tasks
 - Real-time updates
 
 ### **Cursor IDE Integration**
+
 - Restart Cursor IDE to load MCP configuration
 - Use MCP tools in chat:
   - `todo_add("Task name", priority?, tags?)`
@@ -71,6 +77,7 @@ cd task-management
   - `project_set("/path/to/project", "Project Name")`
 
 ### **Terminal Commands**
+
 - `mcp-todo set-workspace` - Set current directory as active project
 - `mcp-todo list-todos` - List current todos
 - `mcp-todo add-todo "Task"` - Add new todo
@@ -86,16 +93,19 @@ cd task-management
 ## 🔄 Daily Usage
 
 ### **Starting the Server**
+
 ```bash
 cd task-management
 npm start
 ```
 
 ### **Stopping the Server**
+
 - Press `Ctrl+C` in the terminal where the server is running
 - Or use: `pkill -f "node dist/todo-server.js"`
 
 ### **Switching Projects**
+
 ```bash
 cd /path/to/your/project
 mcp-todo set-workspace
@@ -104,21 +114,25 @@ mcp-todo set-workspace
 ## 🆘 Troubleshooting
 
 ### **Server Won't Start**
+
 - Check if port 3300 is available: `lsof -i :3300`
 - Kill existing processes: `pkill -f "node dist/todo-server.js"`
 - Try: `npm start`
 
 ### **MCP Tools Not Working in Cursor**
+
 - Restart Cursor IDE completely
 - Check `~/.cursor/mcp.json` exists
 - Verify server is running: `http://localhost:3300/health`
 
 ### **Universal Client Not Found**
+
 - Reinstall: `npm run install-universal-client`
 - Check PATH: `echo $PATH`
 - Try: `npx mcp-todo --help`
 
 ### **Web UI Not Loading**
+
 - Check server is running: `http://localhost:3300/health`
 - Try different browser
 - Check firewall settings
@@ -130,7 +144,7 @@ mcp-todo set-workspace
 - **Cursor Integration**: [CURSOR_INTEGRATION.md](CURSOR_INTEGRATION.md)
 - **API Documentation**: [API.md](API.md)
 
-## 🎉 You're All Set!
+## 🎉 You're All Set
 
 The MCP Todo Server is now fully integrated with your development workflow. You can:
 
@@ -140,4 +154,3 @@ The MCP Todo Server is now fully integrated with your development workflow. You 
 - ✅ Access all features from any directory
 
 **Happy task managing!** 🚀
-

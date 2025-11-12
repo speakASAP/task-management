@@ -66,7 +66,7 @@ mcp-todo help
 2. Open the terminal
 3. Run: `mcp-todo set-workspace`
 4. The MCP Todo Server will switch to your current project
-5. View tasks at: http://localhost:3300
+5. View tasks at: <http://localhost:3300>
 
 ## How It Works
 
@@ -130,19 +130,25 @@ mcp-todo add-todo "Implement user authentication" 2
 ## Integration with Cursor IDE
 
 ### Option 1: Terminal Command
+
 Open Cursor IDE terminal and run:
+
 ```bash
 mcp-todo set-workspace
 ```
 
 ### Option 2: Keyboard Shortcut
+
 Create a keyboard shortcut in Cursor IDE to run this command.
 
 ### Option 3: Task Runner
+
 Add this as a task in Cursor IDE's task runner.
 
 ### Option 4: NPM Script
+
 If you have the task-management project, you can use:
+
 ```bash
 npm run set-workspace
 npm run list-todos
@@ -152,47 +158,57 @@ npm run list-todos
 
 After running `mcp-todo set-workspace`, you can verify the project context by:
 
-1. Opening http://localhost:3300 in your browser
+1. Opening <http://localhost:3300> in your browser
 2. The "Active Project" should show your current Cursor IDE workspace
 3. The project path should match your current directory
 
 ## Troubleshooting
 
 ### MCP Server Not Running
+
 Make sure the MCP Todo Server is running on port 3300:
+
 ```bash
 curl http://localhost:3300/health
 ```
 
 ### Command Not Found
+
 Make sure the client is installed and in your PATH:
+
 ```bash
 which mcp-todo
 # Should show: /usr/local/bin/mcp-todo or ~/.local/bin/mcp-todo
 ```
 
 ### Permission Denied
+
 Make sure the client is executable:
+
 ```bash
 chmod +x /usr/local/bin/mcp-todo
 ```
 
 ### Wrong Project Detected
+
 The client uses the current working directory. Make sure you're in the correct Cursor IDE workspace directory when running the command.
 
 ## Technical Details
 
 ### MCP Tools Used
+
 - `project_set`: Sets the active project context
 - `todo_list`: Lists todos for the current project
 - `todo_add`: Adds new todos to the current project
 
 ### API Endpoints
+
 - `POST /api/project`: Set project context
 - `GET /api/todos`: List todos
 - `POST /api/todos`: Add new todo
 
 ### Project Detection
+
 1. Uses `process.cwd()` to get current directory
 2. Tries to read `package.json` for project name
 3. Falls back to directory name if no `package.json`
@@ -212,4 +228,3 @@ The client uses the current working directory. Make sure you're in the correct C
 - Real-time project switching
 - Integration with Cursor IDE's built-in project detection
 - GUI interface for easier interaction
-

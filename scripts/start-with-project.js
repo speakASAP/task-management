@@ -60,4 +60,3 @@ process.on('SIGTERM', () => {
   console.log('\n🛑 Shutting down MCP server...');
   server.kill('SIGTERM');
 });
-
