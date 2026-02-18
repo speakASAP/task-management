@@ -775,12 +775,18 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🚀 MCP Todo Tasks</h1>
-            <p>Manage your tasks with AI-powered insights</p>
-            <div id="project-context" class="project-context" style="display: none;">
-                <span class="project-indicator">📍 Active Project: <strong id="current-project-name">Loading...</strong></span>
-                <span class="project-path" id="current-project-path">Loading...</span>
+        <div class="header" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+            <div>
+                <h1>🚀 MCP Todo Tasks</h1>
+                <p>Manage your tasks with AI-powered insights</p>
+                <div id="project-context" class="project-context" style="display: none;">
+                    <span class="project-indicator">📍 Active Project: <strong id="current-project-name">Loading...</strong></span>
+                    <span class="project-path" id="current-project-path">Loading...</span>
+                </div>
+            </div>
+            <div class="nav-auth" style="display: flex; gap: 0.75rem;">
+                <a href="login.html" style="color: white; padding: 0.5rem 1rem; border: 1px solid rgba(255,255,255,0.8); border-radius: 8px; text-decoration: none; font-weight: 500;">Login</a>
+                <a href="register.html" style="color: white; background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 500;">Register</a>
             </div>
         </div>
         
